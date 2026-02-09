@@ -9,8 +9,9 @@ import {
 	type Project,
 	type ProjectWithEnvironments,
 } from "@repo/shared";
+import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 export function getDefaultDbPath(): string {
 	return join(homedir(), DEVENV_DIR, DEVENV_DB_FILE);
@@ -18,6 +19,7 @@ export function getDefaultDbPath(): string {
 
 export function createDatabase(dbPath?: string): Database {
 	const path = dbPath ?? getDefaultDbPath();
+	mkdirSync(dirname(path), { recursive: true });
 	const db = new Database(path);
 
 	db.exec("PRAGMA journal_mode=WAL;");
@@ -302,6 +304,15 @@ export function getPortMappings(
 		"SELECT * FROM port_mappings WHERE environment_id = ? ORDER BY container_port",
 	);
 	return (stmt.all(environmentId) as PortMappingRow[]).map(mapPortMapping);
+}
+
+export function deletePortMappings(
+	db: Database,
+	environmentId: number,
+): void {
+	db.prepare("DELETE FROM port_mappings WHERE environment_id = ?").run(
+		environmentId,
+	);
 }
 
 export function getNextAvailableHostPort(db: Database): number {

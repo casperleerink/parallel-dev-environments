@@ -12,11 +12,25 @@ import {
 	DockerError,
 } from "../docker/client.js";
 
+async function waitForCaddyReady(maxAttempts = 30): Promise<void> {
+	for (let i = 0; i < maxAttempts; i++) {
+		try {
+			const res = await fetch(`${CADDY_ADMIN_URL}/config/`);
+			if (res.ok) return;
+		} catch {
+			// Not ready yet
+		}
+		await Bun.sleep(200);
+	}
+	throw new Error("Caddy admin API did not become ready in time");
+}
+
 export async function ensureCaddyRunning(): Promise<void> {
 	try {
 		const info = await inspectContainer(CADDY_CONTAINER_NAME);
 		if (!info.State.Running) {
 			await startContainer(CADDY_CONTAINER_NAME);
+			await waitForCaddyReady();
 		}
 		return;
 	} catch (error) {
@@ -44,10 +58,12 @@ export async function ensureCaddyRunning(): Promise<void> {
 	// Pull image and create container
 	await pullImage(CADDY_IMAGE);
 
+	const config = JSON.stringify({ admin: { listen: "0.0.0.0:2019" } });
 	await createContainer({
 		name: CADDY_CONTAINER_NAME,
 		image: CADDY_IMAGE,
-		workspaceDir: "/dev/null",
+		entrypoint: ["sh"],
+		cmd: ["-c", `printf '%s' '${config}' > /tmp/caddy.json && caddy run --config /tmp/caddy.json`],
 		portBindings: {
 			"80": "80",
 			"2019": "2019",
@@ -58,6 +74,7 @@ export async function ensureCaddyRunning(): Promise<void> {
 	});
 
 	await startContainer(CADDY_CONTAINER_NAME);
+	await waitForCaddyReady();
 }
 
 async function ensureServerConfig(): Promise<void> {

@@ -9,10 +9,12 @@ import { registerCommand } from "./index.js";
 import {
 	createDatabase,
 	getProjectByName,
+	getEnvironmentByName,
 	insertProject,
 	insertEnvironment,
 	upsertEnvFile,
 	insertPortMapping,
+	deletePortMappings,
 	getNextAvailableHostPort,
 	updateEnvironmentContainer,
 	updateEnvironmentStatus,
@@ -20,6 +22,7 @@ import {
 import {
 	createContainer,
 	pullImage,
+	removeContainer,
 	startContainer,
 } from "../docker/client.js";
 import { ensureCaddyRunning, addRoute } from "../tunnel/caddy.js";
@@ -40,18 +43,7 @@ function slugify(str: string): string {
 		.replace(/^-|-$/g, "");
 }
 
-function getCurrentBranch(repoPath: string): string {
-	const result = Bun.spawnSync(
-		["git", "-C", repoPath, "rev-parse", "--abbrev-ref", "HEAD"],
-		{ stdout: "pipe", stderr: "pipe" },
-	);
-	if (result.exitCode !== 0) {
-		throw new Error("Failed to determine current branch");
-	}
-	return result.stdout.toString().trim();
-}
-
-function parseArgs(args: string[]): { repo: string; branch?: string } {
+function parseArgs(args: string[]): { repo: string; branch: string } {
 	let repo: string | undefined;
 	let branch: string | undefined;
 
@@ -67,6 +59,9 @@ function parseArgs(args: string[]): { repo: string; branch?: string } {
 	if (!repo) {
 		throw new Error("--repo <path> is required");
 	}
+	if (!branch) {
+		throw new Error("--branch <name> is required");
+	}
 
 	return { repo, branch };
 }
@@ -75,15 +70,13 @@ registerCommand({
 	name: "create",
 	description: "Create a new development environment",
 	async run(args: string[]) {
-		const { repo, branch: branchArg } = parseArgs(args);
+		const { repo, branch } = parseArgs(args);
 		const repoPath = resolve(repo);
 
 		// Validate repo
 		if (!existsSync(join(repoPath, ".git"))) {
 			throw new Error(`Not a git repository: ${repoPath}`);
 		}
-
-		const branch = branchArg ?? getCurrentBranch(repoPath);
 		const projectName = slugify(basename(repoPath));
 		const envName = `${projectName}-${slugify(branch)}`;
 
@@ -119,14 +112,22 @@ registerCommand({
 
 			// Environment
 			const devcontainerConfig = await findDevcontainerConfig(repoPath);
-			const environment = insertEnvironment(
-				db,
-				project.id,
-				envName,
-				branch,
-				worktreePath,
-				devcontainerConfig ? JSON.stringify(devcontainerConfig) : undefined,
-			);
+			let environment = getEnvironmentByName(db, envName);
+			if (environment) {
+				if (environment.status === "running") {
+					throw new Error(`Environment "${envName}" already exists and is running. Use 'devenv destroy' first.`);
+				}
+				console.log(`  Resuming setup for existing environment: ${envName}`);
+			} else {
+				environment = insertEnvironment(
+					db,
+					project.id,
+					envName,
+					branch,
+					worktreePath,
+					devcontainerConfig ? JSON.stringify(devcontainerConfig) : undefined,
+				);
+			}
 
 			// Env files
 			const envFiles = await discoverEnvFiles(repoPath);
@@ -141,6 +142,9 @@ registerCommand({
 			const image = resolveImage(devcontainerConfig);
 			console.log(`  Pulling image: ${image}`);
 			await pullImage(image);
+
+			// Clear stale port mappings from previous failed attempt
+			deletePortMappings(db, environment.id);
 
 			// Port mappings
 			const forwardPorts = resolveForwardPorts(devcontainerConfig);
@@ -178,6 +182,15 @@ registerCommand({
 					if (trimmed && !trimmed.startsWith("#")) {
 						envVarList.push(trimmed);
 					}
+				}
+			}
+
+			// Remove stale container from a previous failed attempt
+			if (environment.containerId) {
+				try {
+					await removeContainer(environment.containerId);
+				} catch {
+					// Container may already be gone
 				}
 			}
 

@@ -45,7 +45,9 @@ async function dockerFetch(
 export interface CreateContainerOptions {
 	name: string;
 	image: string;
-	workspaceDir: string;
+	workspaceDir?: string;
+	cmd?: string[];
+	entrypoint?: string[];
 	envVars?: string[];
 	labels?: Record<string, string>;
 	portBindings?: Record<string, string>;
@@ -59,7 +61,7 @@ interface CreateContainerResponse {
 export async function createContainer(
 	options: CreateContainerOptions,
 ): Promise<string> {
-	const { name, image, workspaceDir, envVars, labels, portBindings } = options;
+	const { name, image, workspaceDir, cmd, entrypoint, envVars, labels, portBindings } = options;
 
 	const exposedPorts: Record<string, object> = {};
 	const hostPortBindings: Record<string, Array<{ HostPort: string }>> = {};
@@ -74,6 +76,8 @@ export async function createContainer(
 
 	const body = {
 		Image: image,
+		...(cmd ? { Cmd: cmd } : {}),
+		...(entrypoint ? { Entrypoint: entrypoint } : {}),
 		Env: envVars ?? [],
 		Labels: {
 			[`${CONTAINER_LABEL_PREFIX}.managed`]: "true",
@@ -81,10 +85,12 @@ export async function createContainer(
 		},
 		ExposedPorts: exposedPorts,
 		HostConfig: {
-			Binds: [`${workspaceDir}:${CONTAINER_WORKSPACE_DIR}`],
+			...(workspaceDir
+				? { Binds: [`${workspaceDir}:${CONTAINER_WORKSPACE_DIR}`] }
+				: {}),
 			PortBindings: hostPortBindings,
 		},
-		WorkingDir: CONTAINER_WORKSPACE_DIR,
+		...(workspaceDir ? { WorkingDir: CONTAINER_WORKSPACE_DIR } : {}),
 		Tty: true,
 		OpenStdin: true,
 	};

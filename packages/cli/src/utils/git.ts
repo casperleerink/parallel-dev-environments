@@ -3,13 +3,22 @@ export async function createWorktree(
 	branch: string,
 	worktreePath: string,
 ): Promise<void> {
+	// Try checking out existing branch first
 	const proc = Bun.spawn(
 		["git", "-C", repoPath, "worktree", "add", worktreePath, branch],
 		{ stdout: "pipe", stderr: "pipe" },
 	);
 	const exitCode = await proc.exited;
-	if (exitCode !== 0) {
-		const stderr = await new Response(proc.stderr).text();
+	if (exitCode === 0) return;
+
+	// Branch doesn't exist — create it as a new branch
+	const procNew = Bun.spawn(
+		["git", "-C", repoPath, "worktree", "add", "-b", branch, worktreePath],
+		{ stdout: "pipe", stderr: "pipe" },
+	);
+	const exitCodeNew = await procNew.exited;
+	if (exitCodeNew !== 0) {
+		const stderr = await new Response(procNew.stderr).text();
 		throw new Error(`Failed to create worktree: ${stderr.trim()}`);
 	}
 }

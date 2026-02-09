@@ -1,4 +1,28 @@
-export const DOCKER_SOCKET = "/var/run/docker.sock";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
+
+function resolveDockerSocket(): string {
+	const dockerHost = process.env.DOCKER_HOST;
+	if (dockerHost?.startsWith("unix://")) {
+		return dockerHost.slice("unix://".length);
+	}
+
+	const candidates = [
+		join(homedir(), ".docker/run/docker.sock"),
+		"/var/run/docker.sock",
+	];
+
+	for (const candidate of candidates) {
+		if (existsSync(candidate)) {
+			return candidate;
+		}
+	}
+
+	return "/var/run/docker.sock";
+}
+
+export const DOCKER_SOCKET = resolveDockerSocket();
 export const DOCKER_API_VERSION = "v1.47";
 export const CADDY_ADMIN_URL = "http://localhost:2019";
 export const CADDY_CONTAINER_NAME = "devenv-caddy";

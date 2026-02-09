@@ -6,9 +6,9 @@ import { getAllCommands, getCommand } from "./commands/index.js";
 import "./commands/create.js";
 import "./commands/start.js";
 import "./commands/stop.js";
-// import "./commands/list.js";
-// import "./commands/shell.js";
-// import "./commands/branch.js";
+import "./commands/list.js";
+import "./commands/shell.js";
+import "./commands/branch.js";
 // import "./commands/env.js";
 // import "./commands/dashboard.js";
 

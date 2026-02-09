@@ -3,9 +3,9 @@
 import { getAllCommands, getCommand } from "./commands/index.js";
 
 // Commands will be imported here as they are built:
-// import "./commands/create.js";
-// import "./commands/start.js";
-// import "./commands/stop.js";
+import "./commands/create.js";
+import "./commands/start.js";
+import "./commands/stop.js";
 // import "./commands/list.js";
 // import "./commands/shell.js";
 // import "./commands/branch.js";

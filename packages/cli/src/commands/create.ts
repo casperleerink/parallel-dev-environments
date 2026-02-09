@@ -21,6 +21,8 @@ import {
 } from "../db/database.js";
 import {
 	createContainer,
+	DockerError,
+	inspectContainer,
 	pullImage,
 	removeContainer,
 	startContainer,
@@ -115,7 +117,25 @@ registerCommand({
 			let environment = getEnvironmentByName(db, envName);
 			if (environment) {
 				if (environment.status === "running") {
-					throw new Error(`Environment "${envName}" already exists and is running. Use 'devenv destroy' first.`);
+					// Verify the container is actually running in Docker
+					let containerActuallyRunning = false;
+					if (environment.containerId) {
+						try {
+							const info = await inspectContainer(environment.containerId);
+							containerActuallyRunning = info.State.Running;
+						} catch (e) {
+							if (e instanceof DockerError && e.statusCode === 404) {
+								// Container no longer exists
+							} else {
+								throw e;
+							}
+						}
+					}
+					if (containerActuallyRunning) {
+						throw new Error(`Environment "${envName}" already exists and is running. Use 'devenv destroy' first.`);
+					}
+					// DB status is stale — container is gone or stopped
+					updateEnvironmentStatus(db, environment.id, "stopped");
 				}
 				console.log(`  Resuming setup for existing environment: ${envName}`);
 			} else {

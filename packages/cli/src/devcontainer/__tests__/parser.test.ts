@@ -73,12 +73,12 @@ describe("resolveImage", () => {
 		expect(resolveImage({ image: "golang:1.22" })).toBe("golang:1.22");
 	});
 
-	it("falls back to node:20 when no config", () => {
-		expect(resolveImage(null)).toBe("node:20");
+	it("falls back to node:24 when no config", () => {
+		expect(resolveImage(null)).toBe("node:24");
 	});
 
-	it("falls back to node:20 when image not set", () => {
-		expect(resolveImage({})).toBe("node:20");
+	it("falls back to node:24 when image not set", () => {
+		expect(resolveImage({})).toBe("node:24");
 	});
 });
 

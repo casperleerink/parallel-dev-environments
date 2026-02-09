@@ -1,10 +1,6 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
-import {
-	CONTAINER_LABEL_PREFIX,
-	DEVENV_DIR,
-	DEVENV_WORKTREES_DIR,
-} from "@repo/shared";
+import { DEVENV_DIR, DEVENV_WORKTREES_DIR } from "@repo/shared";
 import {
 	createDatabase,
 	deletePortMappings,
@@ -18,20 +14,15 @@ import {
 	updateEnvironmentStatus,
 	upsertEnvFile,
 } from "../db/database.js";
+import { buildMergedConfig } from "../devcontainer/config-builder.js";
 import {
 	findDevcontainerConfig,
 	resolveEnvVars,
 	resolveForwardPorts,
-	resolveImage,
 } from "../devcontainer/parser.js";
-import {
-	createContainer,
-	DockerError,
-	inspectContainer,
-	pullImage,
-	removeContainer,
-	startContainer,
-} from "../docker/client.js";
+import { ensureDevcontainerCLI } from "../devcontainer/prerequisites.js";
+import { devcontainerUp } from "../devcontainer/runner.js";
+import { DockerError, inspectContainer } from "../docker/client.js";
 import { addRoute, ensureCaddyRunning } from "../tunnel/caddy.js";
 import {
 	discoverEnvFiles,
@@ -79,6 +70,9 @@ registerCommand({
 		const { repo, branch } = parseArgs(args);
 		const repoPath = resolve(repo);
 
+		// Validate prerequisites
+		await ensureDevcontainerCLI();
+
 		// Validate repo
 		if (!existsSync(join(repoPath, ".git"))) {
 			throw new Error(`Not a git repository: ${repoPath}`);
@@ -119,6 +113,7 @@ registerCommand({
 			// Environment
 			const devcontainerConfig = await findDevcontainerConfig(repoPath);
 			let environment = getEnvironmentByName(db, envName);
+			let removeExistingContainer = false;
 			if (environment) {
 				if (environment.status === "running") {
 					// Verify the container is actually running in Docker
@@ -143,6 +138,7 @@ registerCommand({
 					// DB status is stale — container is gone or stopped
 					updateEnvironmentStatus(db, environment.id, "stopped");
 				}
+				removeExistingContainer = true;
 				console.log(`  Resuming setup for existing environment: ${envName}`);
 			} else {
 				environment = insertEnvironment(
@@ -168,11 +164,6 @@ registerCommand({
 			if (envFiles.length > 0) {
 				console.log(`  Discovered ${envFiles.length} env file(s)`);
 			}
-
-			// Docker image
-			const image = resolveImage(devcontainerConfig);
-			console.log(`  Pulling image: ${image}`);
-			await pullImage(image);
 
 			// Clear stale port mappings from previous failed attempt
 			deletePortMappings(db, environment.id);
@@ -200,46 +191,45 @@ registerCommand({
 				portMappings.push({ containerPort, hostPort, hostname });
 			}
 
-			// Env vars for container
+			// Build container env vars as record for config-builder
 			const configEnvVars = resolveEnvVars(devcontainerConfig);
-			const envVarList: string[] = [];
-			for (const [key, value] of Object.entries(configEnvVars)) {
-				envVarList.push(`${key}=${value}`);
-			}
+			const containerEnv: Record<string, string> = { ...configEnvVars };
 			// Add env file contents as env vars
 			for (const envFile of envFiles) {
 				for (const line of envFile.content.split("\n")) {
 					const trimmed = line.trim();
 					if (trimmed && !trimmed.startsWith("#")) {
-						envVarList.push(trimmed);
+						const eqIndex = trimmed.indexOf("=");
+						if (eqIndex > 0) {
+							const key = trimmed.slice(0, eqIndex);
+							const value = trimmed.slice(eqIndex + 1);
+							containerEnv[key] = value;
+						}
 					}
 				}
 			}
 
-			// Remove stale container from a previous failed attempt
-			if (environment.containerId) {
-				try {
-					await removeContainer(environment.containerId);
-				} catch {
-					// Container may already be gone
-				}
-			}
-
-			// Create container
-			console.log("  Creating container...");
-			const containerId = await createContainer({
-				name: envName,
-				image,
-				workspaceDir: worktreePath,
-				envVars: envVarList,
-				labels: {
-					[`${CONTAINER_LABEL_PREFIX}.project`]: projectName,
-					[`${CONTAINER_LABEL_PREFIX}.environment`]: envName,
-				},
+			// Build merged devcontainer config and run devcontainer up
+			console.log("  Building devcontainer configuration...");
+			const { configPath, additionalFeatures } = await buildMergedConfig({
+				devcontainerConfig,
+				worktreePath,
+				containerEnv,
 				portBindings,
 			});
 
+			console.log("  Starting devcontainer...");
+			const { containerId } = await devcontainerUp({
+				worktreePath,
+				configPath,
+				projectName,
+				envName,
+				additionalFeatures,
+				removeExistingContainer,
+			});
+
 			updateEnvironmentContainer(db, environment.id, containerId);
+			updateEnvironmentStatus(db, environment.id, "running");
 
 			// Caddy routes
 			console.log("  Configuring reverse proxy...");
@@ -248,10 +238,6 @@ registerCommand({
 				const routeId = formatRouteId(`${envName}-${pm.containerPort}`);
 				await addRoute(routeId, pm.hostname, pm.hostPort);
 			}
-
-			// Start container
-			await startContainer(containerId);
-			updateEnvironmentStatus(db, environment.id, "running");
 
 			// Summary
 			console.log("\nEnvironment created successfully!");

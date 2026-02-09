@@ -4,10 +4,14 @@ import { DEFAULT_CONTAINER_PORT } from "@repo/shared";
 
 export interface DevcontainerConfig {
 	image?: string;
+	dockerFile?: string;
+	dockerComposeFile?: string;
 	forwardPorts?: number[];
 	containerEnv?: Record<string, string>;
 	remoteEnv?: Record<string, string>;
-	postCreateCommand?: string | string[];
+	postCreateCommand?: string | string[] | Record<string, string>;
+	features?: Record<string, Record<string, unknown>>;
+	appPort?: string[] | number[];
 	[key: string]: unknown;
 }
 
@@ -30,7 +34,7 @@ export async function findDevcontainerConfig(
 }
 
 export function resolveImage(config: DevcontainerConfig | null): string {
-	return config?.image ?? "node:20";
+	return config?.image ?? "node:24";
 }
 
 export function resolveForwardPorts(
@@ -65,6 +69,10 @@ export function resolvePostCreateCommand(
 
 	if (Array.isArray(config.postCreateCommand)) {
 		return config.postCreateCommand.join(" ");
+	}
+
+	if (typeof config.postCreateCommand === "object") {
+		return Object.values(config.postCreateCommand).join(" && ");
 	}
 
 	return config.postCreateCommand;

@@ -1,4 +1,4 @@
-import { describe, expect, test, mock, afterEach } from "bun:test";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 import { CADDY_ADMIN_URL, CADDY_HOST_GATEWAY } from "@repo/shared";
 
 const originalFetch = globalThis.fetch;
@@ -64,14 +64,14 @@ describe("addRoute", () => {
 			(c) => c.url.includes("/routes") && c.method === "POST",
 		);
 		expect(routeCall).toBeDefined();
-		expect(routeCall!.body?.["@id"]).toBe("devenv-myapp-main");
-		expect(routeCall!.body?.match).toEqual([
+		expect(routeCall?.body?.["@id"]).toBe("devenv-myapp-main");
+		expect(routeCall?.body?.match).toEqual([
 			{ host: ["myapp-main.localhost"] },
 		]);
 
-		const handle = routeCall!.body?.handle as Array<Record<string, unknown>>;
-		expect(handle[0]!.handler).toBe("reverse_proxy");
-		expect(handle[0]!.upstreams).toEqual([
+		const handle = routeCall?.body?.handle as Array<Record<string, unknown>>;
+		expect(handle[0]?.handler).toBe("reverse_proxy");
+		expect(handle[0]?.upstreams).toEqual([
 			{ dial: `${CADDY_HOST_GATEWAY}:49200` },
 		]);
 	});
@@ -167,7 +167,7 @@ describe("listRoutes", () => {
 		const result = await listRoutes();
 
 		expect(result).toHaveLength(1);
-		expect(result[0]!["@id"]).toBe("devenv-myapp-main");
+		expect(result[0]?.["@id"]).toBe("devenv-myapp-main");
 	});
 
 	test("returns empty array on error", async () => {

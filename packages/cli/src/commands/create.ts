@@ -1,24 +1,29 @@
+import { existsSync, mkdirSync } from "node:fs";
+import { basename, join, resolve } from "node:path";
 import {
 	CONTAINER_LABEL_PREFIX,
 	DEVENV_DIR,
 	DEVENV_WORKTREES_DIR,
 } from "@repo/shared";
-import { existsSync, mkdirSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
-import { registerCommand } from "./index.js";
 import {
 	createDatabase,
-	getProjectByName,
-	getEnvironmentByName,
-	insertProject,
-	insertEnvironment,
-	upsertEnvFile,
-	insertPortMapping,
 	deletePortMappings,
+	getEnvironmentByName,
 	getNextAvailableHostPort,
+	getProjectByName,
+	insertEnvironment,
+	insertPortMapping,
+	insertProject,
 	updateEnvironmentContainer,
 	updateEnvironmentStatus,
+	upsertEnvFile,
 } from "../db/database.js";
+import {
+	findDevcontainerConfig,
+	resolveEnvVars,
+	resolveForwardPorts,
+	resolveImage,
+} from "../devcontainer/parser.js";
 import {
 	createContainer,
 	DockerError,
@@ -27,15 +32,14 @@ import {
 	removeContainer,
 	startContainer,
 } from "../docker/client.js";
-import { ensureCaddyRunning, addRoute } from "../tunnel/caddy.js";
-import { createWorktree } from "../utils/git.js";
-import { discoverEnvFiles, formatRouteId, generateHostname } from "../utils/envfiles.js";
+import { addRoute, ensureCaddyRunning } from "../tunnel/caddy.js";
 import {
-	findDevcontainerConfig,
-	resolveImage,
-	resolveForwardPorts,
-	resolveEnvVars,
-} from "../devcontainer/parser.js";
+	discoverEnvFiles,
+	formatRouteId,
+	generateHostname,
+} from "../utils/envfiles.js";
+import { createWorktree } from "../utils/git.js";
+import { registerCommand } from "./index.js";
 
 function slugify(str: string): string {
 	return str
@@ -50,11 +54,11 @@ function parseArgs(args: string[]): { repo: string; branch: string } {
 	let branch: string | undefined;
 
 	for (let i = 0; i < args.length; i++) {
-		const arg = args[i]!;
+		const arg = args[i];
 		if (arg === "--repo" && i + 1 < args.length) {
-			repo = args[++i]!;
+			repo = args[++i];
 		} else if (arg === "--branch" && i + 1 < args.length) {
-			branch = args[++i]!;
+			branch = args[++i];
 		}
 	}
 
@@ -132,7 +136,9 @@ registerCommand({
 						}
 					}
 					if (containerActuallyRunning) {
-						throw new Error(`Environment "${envName}" already exists and is running. Use 'devenv destroy' first.`);
+						throw new Error(
+							`Environment "${envName}" already exists and is running. Use 'devenv destroy' first.`,
+						);
 					}
 					// DB status is stale — container is gone or stopped
 					updateEnvironmentStatus(db, environment.id, "stopped");
@@ -152,7 +158,12 @@ registerCommand({
 			// Env files
 			const envFiles = await discoverEnvFiles(repoPath);
 			for (const envFile of envFiles) {
-				upsertEnvFile(db, environment.id, envFile.relativePath, envFile.content);
+				upsertEnvFile(
+					db,
+					environment.id,
+					envFile.relativePath,
+					envFile.content,
+				);
 			}
 			if (envFiles.length > 0) {
 				console.log(`  Discovered ${envFiles.length} env file(s)`);
@@ -234,9 +245,7 @@ registerCommand({
 			console.log("  Configuring reverse proxy...");
 			await ensureCaddyRunning();
 			for (const pm of portMappings) {
-				const routeId = formatRouteId(
-					`${envName}-${pm.containerPort}`,
-				);
+				const routeId = formatRouteId(`${envName}-${pm.containerPort}`);
 				await addRoute(routeId, pm.hostname, pm.hostPort);
 			}
 

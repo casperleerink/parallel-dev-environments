@@ -6,10 +6,10 @@ import {
 } from "@repo/shared";
 import {
 	createContainer,
+	DockerError,
 	inspectContainer,
 	pullImage,
 	startContainer,
-	DockerError,
 } from "../docker/client.js";
 
 async function waitForCaddyReady(maxAttempts = 30): Promise<void> {
@@ -63,7 +63,10 @@ export async function ensureCaddyRunning(): Promise<void> {
 		name: CADDY_CONTAINER_NAME,
 		image: CADDY_IMAGE,
 		entrypoint: ["sh"],
-		cmd: ["-c", `printf '%s' '${config}' > /tmp/caddy.json && caddy run --config /tmp/caddy.json`],
+		cmd: [
+			"-c",
+			`printf '%s' '${config}' > /tmp/caddy.json && caddy run --config /tmp/caddy.json`,
+		],
 		portBindings: {
 			"80": "80",
 			"2019": "2019",

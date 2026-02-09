@@ -1,20 +1,20 @@
-import { describe, expect, test, beforeEach } from "bun:test";
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
+import { beforeEach, describe, expect, test } from "bun:test";
 import {
 	createDatabase,
-	insertProject,
+	getEnvFiles,
+	getEnvironmentByName,
+	getEnvironmentsByProject,
+	getNextAvailableHostPort,
+	getPortMappings,
 	getProjectByName,
 	getProjectsWithEnvironments,
 	insertEnvironment,
-	getEnvironmentByName,
-	getEnvironmentsByProject,
-	updateEnvironmentStatus,
-	updateEnvironmentContainer,
-	upsertEnvFile,
-	getEnvFiles,
 	insertPortMapping,
-	getPortMappings,
-	getNextAvailableHostPort,
+	insertProject,
+	updateEnvironmentContainer,
+	updateEnvironmentStatus,
+	upsertEnvFile,
 } from "../database.js";
 
 let db: Database;
@@ -33,8 +33,8 @@ describe("projects", () => {
 
 		const retrieved = getProjectByName(db, "my-project");
 		expect(retrieved).not.toBeNull();
-		expect(retrieved!.id).toBe(project.id);
-		expect(retrieved!.name).toBe("my-project");
+		expect(retrieved?.id).toBe(project.id);
+		expect(retrieved?.name).toBe("my-project");
 	});
 
 	test("returns null for non-existent project", () => {
@@ -66,7 +66,7 @@ describe("environments", () => {
 
 		const retrieved = getEnvironmentByName(db, "my-project-main");
 		expect(retrieved).not.toBeNull();
-		expect(retrieved!.id).toBe(env.id);
+		expect(retrieved?.id).toBe(env.id);
 	});
 
 	test("get environments by project", () => {
@@ -84,7 +84,7 @@ describe("environments", () => {
 
 		updateEnvironmentStatus(db, env.id, "running");
 		const updated = getEnvironmentByName(db, "env-main");
-		expect(updated!.status).toBe("running");
+		expect(updated?.status).toBe("running");
 	});
 
 	test("update container id", () => {
@@ -93,7 +93,7 @@ describe("environments", () => {
 
 		updateEnvironmentContainer(db, env.id, "abc123");
 		const updated = getEnvironmentByName(db, "env-main");
-		expect(updated!.containerId).toBe("abc123");
+		expect(updated?.containerId).toBe("abc123");
 	});
 });
 
@@ -107,10 +107,10 @@ describe("projects with environments", () => {
 
 		const result = getProjectsWithEnvironments(db);
 		expect(result).toHaveLength(2);
-		expect(result[0]!.name).toBe("project-a");
-		expect(result[0]!.environments).toHaveLength(2);
-		expect(result[1]!.name).toBe("project-b");
-		expect(result[1]!.environments).toHaveLength(1);
+		expect(result[0]?.name).toBe("project-a");
+		expect(result[0]?.environments).toHaveLength(2);
+		expect(result[1]?.name).toBe("project-b");
+		expect(result[1]?.environments).toHaveLength(1);
 	});
 });
 
@@ -124,8 +124,8 @@ describe("env files", () => {
 
 		const files = getEnvFiles(db, env.id);
 		expect(files).toHaveLength(2);
-		expect(files[0]!.relativePath).toBe(".env");
-		expect(files[0]!.content).toBe("KEY=value");
+		expect(files[0]?.relativePath).toBe(".env");
+		expect(files[0]?.content).toBe("KEY=value");
 	});
 
 	test("upsert updates existing", () => {
@@ -137,7 +137,7 @@ describe("env files", () => {
 
 		const files = getEnvFiles(db, env.id);
 		expect(files).toHaveLength(1);
-		expect(files[0]!.content).toBe("KEY=new");
+		expect(files[0]?.content).toBe("KEY=new");
 	});
 });
 

@@ -1,5 +1,5 @@
-import { registerCommand } from "./index.js";
 import { createDatabase, getEnvironmentByName } from "../db/database.js";
+import { registerCommand } from "./index.js";
 
 registerCommand({
 	name: "shell",
@@ -24,9 +24,7 @@ registerCommand({
 			}
 
 			if (!environment.containerId) {
-				throw new Error(
-					`No container associated with environment: ${envName}`,
-				);
+				throw new Error(`No container associated with environment: ${envName}`);
 			}
 
 			console.log(`Opening shell in ${envName}...`);
@@ -35,13 +33,7 @@ registerCommand({
 			// The Docker Engine HTTP API doesn't support bidirectional streaming
 			// well with fetch, so we shell out to docker exec instead
 			const proc = Bun.spawn(
-				[
-					"docker",
-					"exec",
-					"-it",
-					environment.containerId,
-					"/bin/sh",
-				],
+				["docker", "exec", "-it", environment.containerId, "/bin/sh"],
 				{
 					stdin: "inherit",
 					stdout: "inherit",

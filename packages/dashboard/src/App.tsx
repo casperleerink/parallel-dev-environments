@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	type EnvironmentResponse,
-	type ProjectResponse,
 	fetchProjects,
+	type ProjectResponse,
 	startEnvironment,
 	stopEnvironment,
 } from "./api/client.js";
@@ -10,7 +10,11 @@ import {
 export function App() {
 	const queryClient = useQueryClient();
 
-	const { data: projects, error, isPending } = useQuery({
+	const {
+		data: projects,
+		error,
+		isPending,
+	} = useQuery({
 		queryKey: ["projects"],
 		queryFn: fetchProjects,
 		refetchInterval: 5000,
@@ -33,7 +37,8 @@ export function App() {
 				<div style={styles.errorCard}>
 					<p>Could not connect to API server.</p>
 					<p style={styles.hint}>
-						Run <code style={styles.code}>devenv dashboard</code> to start the API server.
+						Run <code style={styles.code}>devenv dashboard</code> to start the
+						API server.
 					</p>
 				</div>
 			</div>
@@ -56,7 +61,9 @@ export function App() {
 				<div style={styles.emptyCard}>
 					<p>No projects yet.</p>
 					<p style={styles.hint}>
-						Run <code style={styles.code}>devenv create --repo &lt;path&gt;</code> to create one.
+						Run{" "}
+						<code style={styles.code}>devenv create --repo &lt;path&gt;</code>{" "}
+						to create one.
 					</p>
 				</div>
 			</div>
@@ -72,8 +79,12 @@ export function App() {
 					project={project}
 					onStart={(name) => startMutation.mutate(name)}
 					onStop={(name) => stopMutation.mutate(name)}
-					startingEnv={startMutation.isPending ? (startMutation.variables ?? null) : null}
-					stoppingEnv={stopMutation.isPending ? (stopMutation.variables ?? null) : null}
+					startingEnv={
+						startMutation.isPending ? (startMutation.variables ?? null) : null
+					}
+					stoppingEnv={
+						stopMutation.isPending ? (stopMutation.variables ?? null) : null
+					}
 				/>
 			))}
 			{(startMutation.error || stopMutation.error) && (
@@ -141,12 +152,20 @@ function EnvironmentRow({
 	return (
 		<div style={styles.envRow}>
 			<div style={styles.envInfo}>
-				<span style={{ color: isRunning ? "#22c55e" : "#6b7280", marginRight: 8 }}>
+				<span
+					style={{ color: isRunning ? "#22c55e" : "#6b7280", marginRight: 8 }}
+				>
 					{isRunning ? "\u25cf" : "\u25cb"}
 				</span>
 				<span style={styles.envName}>{env.name}</span>
 				<span style={styles.envBranch}>{env.branch}</span>
-				<span style={{ color: isRunning ? "#22c55e" : "#9ca3af", marginLeft: 8, fontSize: 13 }}>
+				<span
+					style={{
+						color: isRunning ? "#22c55e" : "#9ca3af",
+						marginLeft: 8,
+						fontSize: 13,
+					}}
+				>
 					{env.status}
 				</span>
 			</div>

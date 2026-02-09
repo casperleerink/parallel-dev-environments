@@ -61,7 +61,16 @@ interface CreateContainerResponse {
 export async function createContainer(
 	options: CreateContainerOptions,
 ): Promise<string> {
-	const { name, image, workspaceDir, cmd, entrypoint, envVars, labels, portBindings } = options;
+	const {
+		name,
+		image,
+		workspaceDir,
+		cmd,
+		entrypoint,
+		envVars,
+		labels,
+		portBindings,
+	} = options;
 
 	const exposedPorts: Record<string, object> = {};
 	const hostPortBindings: Record<string, Array<{ HostPort: string }>> = {};
@@ -155,9 +164,9 @@ export async function inspectContainer(
 }
 
 export async function pullImage(image: string): Promise<void> {
-	const [fromImage, tag = "latest"] = image.split(":");
+	const [fromImage = image, tag = "latest"] = image.split(":");
 	const res = await dockerFetch(
-		`/images/create?fromImage=${encodeURIComponent(fromImage!)}&tag=${encodeURIComponent(tag)}`,
+		`/images/create?fromImage=${encodeURIComponent(fromImage)}&tag=${encodeURIComponent(tag)}`,
 		{ method: "POST" },
 	);
 	// Read body stream to completion

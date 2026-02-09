@@ -1,40 +1,36 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import {
 	CONTAINER_LABEL_PREFIX,
 	DEVENV_DIR,
 	DEVENV_WORKTREES_DIR,
 } from "@repo/shared";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { registerCommand } from "./index.js";
 import {
 	createDatabase,
-	getEnvironmentByName,
 	getEnvFiles,
-	getPortMappings,
-	insertEnvironment,
-	upsertEnvFile,
-	insertPortMapping,
+	getEnvironmentByName,
 	getNextAvailableHostPort,
+	insertEnvironment,
+	insertPortMapping,
 	updateEnvironmentContainer,
 	updateEnvironmentStatus,
+	upsertEnvFile,
 } from "../db/database.js";
+import type { DevcontainerConfig } from "../devcontainer/parser.js";
+import {
+	resolveEnvVars,
+	resolveForwardPorts,
+	resolveImage,
+} from "../devcontainer/parser.js";
 import {
 	createContainer,
 	pullImage,
 	startContainer,
 } from "../docker/client.js";
-import { ensureCaddyRunning, addRoute } from "../tunnel/caddy.js";
+import { addRoute, ensureCaddyRunning } from "../tunnel/caddy.js";
+import { formatRouteId, generateHostname } from "../utils/envfiles.js";
 import { createWorktree } from "../utils/git.js";
-import {
-	formatRouteId,
-	generateHostname,
-} from "../utils/envfiles.js";
-import {
-	resolveImage,
-	resolveForwardPorts,
-	resolveEnvVars,
-} from "../devcontainer/parser.js";
-import type { DevcontainerConfig } from "../devcontainer/parser.js";
+import { registerCommand } from "./index.js";
 
 function slugify(str: string): string {
 	return str
@@ -46,7 +42,8 @@ function slugify(str: string): string {
 
 registerCommand({
 	name: "branch",
-	description: "Create a new environment from an existing one on a different branch",
+	description:
+		"Create a new environment from an existing one on a different branch",
 	async run(args: string[]) {
 		const envName = args[0];
 		const newBranch = args[1];
@@ -195,9 +192,7 @@ registerCommand({
 			console.log("  Configuring reverse proxy...");
 			await ensureCaddyRunning();
 			for (const pm of portMappings) {
-				const routeId = formatRouteId(
-					`${newEnvName}-${pm.containerPort}`,
-				);
+				const routeId = formatRouteId(`${newEnvName}-${pm.containerPort}`);
 				await addRoute(routeId, pm.hostname, pm.hostPort);
 			}
 
@@ -212,9 +207,7 @@ registerCommand({
 			console.log(`  Status: running`);
 			console.log("  URLs:");
 			for (const pm of portMappings) {
-				console.log(
-					`    http://${pm.hostname} \u2192 :${pm.containerPort}`,
-				);
+				console.log(`    http://${pm.hostname} \u2192 :${pm.containerPort}`);
 			}
 		} finally {
 			db.close();

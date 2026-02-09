@@ -1,4 +1,4 @@
-import { describe, expect, test, mock, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import {
 	CONTAINER_LABEL_PREFIX,
 	CONTAINER_WORKSPACE_DIR,
@@ -40,10 +40,10 @@ describe("dockerFetch", () => {
 
 	test("throws DockerError on non-ok response", async () => {
 		mockFetch(() => {
-			return new Response(
-				JSON.stringify({ message: "container not found" }),
-				{ status: 404, statusText: "Not Found" },
-			);
+			return new Response(JSON.stringify({ message: "container not found" }), {
+				status: 404,
+				statusText: "Not Found",
+			});
 		});
 
 		const { inspectContainer, DockerError } = await import("../client.js");
@@ -208,9 +208,7 @@ describe("listContainers", () => {
 
 		expect(capturedUrl).toContain("all=true");
 		expect(capturedUrl).toContain("filters=");
-		expect(decodeURIComponent(capturedUrl)).toContain(
-			"devenv.managed=true",
-		);
+		expect(decodeURIComponent(capturedUrl)).toContain("devenv.managed=true");
 	});
 
 	test("works without filter", async () => {
@@ -252,15 +250,15 @@ describe("execInContainer", () => {
 		const result = await execInContainer("abc123", ["/bin/sh"]);
 
 		expect(result.execId).toBe("exec-123");
-		expect(calls[0]!.url).toContain("/containers/abc123/exec");
-		expect(calls[0]!.body?.Cmd).toEqual(["/bin/sh"]);
-		expect(calls[0]!.body?.AttachStdin).toBe(true);
-		expect(calls[0]!.body?.AttachStdout).toBe(true);
-		expect(calls[0]!.body?.Tty).toBe(true);
+		expect(calls[0]?.url).toContain("/containers/abc123/exec");
+		expect(calls[0]?.body?.Cmd).toEqual(["/bin/sh"]);
+		expect(calls[0]?.body?.AttachStdin).toBe(true);
+		expect(calls[0]?.body?.AttachStdout).toBe(true);
+		expect(calls[0]?.body?.Tty).toBe(true);
 
 		// Start the exec
 		await result.start();
-		expect(calls[1]!.url).toContain("/exec/exec-123/start");
-		expect(calls[1]!.body?.Detach).toBe(false);
+		expect(calls[1]?.url).toContain("/exec/exec-123/start");
+		expect(calls[1]?.body?.Detach).toBe(false);
 	});
 });

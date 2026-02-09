@@ -38,7 +38,7 @@ async function main(): Promise<void> {
 		process.exit(0);
 	}
 
-	const commandName = args[0]!;
+	const commandName = args[0] as string;
 	const command = getCommand(commandName);
 
 	if (!command) {

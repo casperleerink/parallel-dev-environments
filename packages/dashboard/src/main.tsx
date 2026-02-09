@@ -5,6 +5,7 @@ import { App } from "./App.js";
 
 const queryClient = new QueryClient();
 
+// biome-ignore lint/style/noNonNullAssertion: root element is always present in index.html
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
 		<QueryClientProvider client={queryClient}>

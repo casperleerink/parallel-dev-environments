@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { homedir } from "node:os";
+import { join } from "node:path";
 
 function resolveDockerSocket(): string {
 	const dockerHost = process.env.DOCKER_HOST;

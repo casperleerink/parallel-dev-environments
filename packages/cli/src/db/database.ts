@@ -1,17 +1,17 @@
 import { Database } from "bun:sqlite";
+import { mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import {
 	DEVENV_DB_FILE,
 	DEVENV_DIR,
-	HOST_PORT_RANGE_START,
-	type Environment,
 	type EnvFile,
+	type Environment,
+	HOST_PORT_RANGE_START,
 	type PortMapping,
 	type Project,
 	type ProjectWithEnvironments,
 } from "@repo/shared";
-import { mkdirSync } from "node:fs";
-import { homedir } from "node:os";
-import { dirname, join } from "node:path";
 
 export function getDefaultDbPath(): string {
 	return join(homedir(), DEVENV_DIR, DEVENV_DB_FILE);
@@ -166,10 +166,7 @@ export function insertProject(
 	return mapProject(stmt.get(name, repoPath) as ProjectRow);
 }
 
-export function getProjectByName(
-	db: Database,
-	name: string,
-): Project | null {
+export function getProjectByName(db: Database, name: string): Project | null {
 	const stmt = db.prepare("SELECT * FROM projects WHERE name = ?");
 	const row = stmt.get(name) as ProjectRow | null;
 	return row ? mapProject(row) : null;
@@ -292,7 +289,12 @@ export function insertPortMapping(
 		"INSERT INTO port_mappings (environment_id, container_port, host_port, hostname) VALUES (?, ?, ?, ?) RETURNING *",
 	);
 	return mapPortMapping(
-		stmt.get(environmentId, containerPort, hostPort, hostname) as PortMappingRow,
+		stmt.get(
+			environmentId,
+			containerPort,
+			hostPort,
+			hostname,
+		) as PortMappingRow,
 	);
 }
 
@@ -306,10 +308,7 @@ export function getPortMappings(
 	return (stmt.all(environmentId) as PortMappingRow[]).map(mapPortMapping);
 }
 
-export function deletePortMappings(
-	db: Database,
-	environmentId: number,
-): void {
+export function deletePortMappings(db: Database, environmentId: number): void {
 	db.prepare("DELETE FROM port_mappings WHERE environment_id = ?").run(
 		environmentId,
 	);

@@ -1,6 +1,6 @@
-import { DEFAULT_CONTAINER_PORT, LOCALHOST_SUFFIX } from "@repo/shared";
 import { type Dirent, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
+import { DEFAULT_CONTAINER_PORT, LOCALHOST_SUFFIX } from "@repo/shared";
 
 const EXCLUDED_DIRS = new Set([
 	"node_modules",

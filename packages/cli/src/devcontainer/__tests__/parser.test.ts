@@ -1,12 +1,12 @@
-import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
 	findDevcontainerConfig,
-	resolveImage,
-	resolveForwardPorts,
 	resolveEnvVars,
+	resolveForwardPorts,
+	resolveImage,
 	resolvePostCreateCommand,
 } from "../parser.js";
 
@@ -32,7 +32,7 @@ describe("findDevcontainerConfig", () => {
 
 		const config = await findDevcontainerConfig(tempDir);
 		expect(config).not.toBeNull();
-		expect(config!.image).toBe("node:22");
+		expect(config?.image).toBe("node:22");
 	});
 
 	it("finds .devcontainer.json in project root", async () => {
@@ -43,7 +43,7 @@ describe("findDevcontainerConfig", () => {
 
 		const config = await findDevcontainerConfig(tempDir);
 		expect(config).not.toBeNull();
-		expect(config!.image).toBe("python:3.12");
+		expect(config?.image).toBe("python:3.12");
 	});
 
 	it("prefers .devcontainer/devcontainer.json over .devcontainer.json", async () => {
@@ -59,7 +59,7 @@ describe("findDevcontainerConfig", () => {
 		);
 
 		const config = await findDevcontainerConfig(tempDir);
-		expect(config!.image).toBe("node:22");
+		expect(config?.image).toBe("node:22");
 	});
 
 	it("returns null when no config exists", async () => {

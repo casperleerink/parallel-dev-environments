@@ -1,5 +1,9 @@
+import {
+	createDatabase,
+	getPortMappings,
+	getProjectsWithEnvironments,
+} from "../db/database.js";
 import { registerCommand } from "./index.js";
-import { createDatabase, getProjectsWithEnvironments, getPortMappings } from "../db/database.js";
 
 registerCommand({
 	name: "list",
@@ -11,9 +15,7 @@ registerCommand({
 
 			if (projects.length === 0) {
 				console.log("No environments found.");
-				console.log(
-					'Run "devenv create --repo <path>" to create one.',
-				);
+				console.log('Run "devenv create --repo <path>" to create one.');
 				return;
 			}
 
@@ -29,9 +31,7 @@ registerCommand({
 					const status =
 						env.status === "running" ? "\x1b[32m●\x1b[0m" : "\x1b[90m○\x1b[0m";
 					const statusText =
-						env.status === "running"
-							? "\x1b[32mrunning\x1b[0m"
-							: env.status;
+						env.status === "running" ? "\x1b[32mrunning\x1b[0m" : env.status;
 
 					console.log(
 						`  ${status} ${env.name.padEnd(30)} ${env.branch.padEnd(20)} ${statusText}`,

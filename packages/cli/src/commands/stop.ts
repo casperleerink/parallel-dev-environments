@@ -1,4 +1,3 @@
-import { registerCommand } from "./index.js";
 import {
 	createDatabase,
 	getEnvironmentByName,
@@ -8,6 +7,7 @@ import {
 import { stopContainer } from "../docker/client.js";
 import { removeRoute } from "../tunnel/caddy.js";
 import { formatRouteId } from "../utils/envfiles.js";
+import { registerCommand } from "./index.js";
 
 registerCommand({
 	name: "stop",

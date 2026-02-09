@@ -1,8 +1,8 @@
 import { API_PORT } from "@repo/shared";
 import {
 	createDatabase,
-	getEnvironmentByName,
 	getEnvFiles,
+	getEnvironmentByName,
 	getPortMappings,
 	getProjectsWithEnvironments,
 	updateEnvironmentStatus,
@@ -62,25 +62,23 @@ export function startApiServer(): ReturnType<typeof Bun.serve> {
 					return handleGetProjects();
 				}
 
-				const envMatch = pathname.match(
-					/^\/api\/environments\/([^/]+)$/,
-				);
-				if (envMatch && req.method === "GET") {
-					return handleGetEnvironment(envMatch[1]!);
+				const envMatch = pathname.match(/^\/api\/environments\/([^/]+)$/);
+				if (envMatch?.[1] && req.method === "GET") {
+					return handleGetEnvironment(envMatch[1]);
 				}
 
 				const startMatch = pathname.match(
 					/^\/api\/environments\/([^/]+)\/start$/,
 				);
-				if (startMatch && req.method === "POST") {
-					return await handleStartEnvironment(startMatch[1]!);
+				if (startMatch?.[1] && req.method === "POST") {
+					return await handleStartEnvironment(startMatch[1]);
 				}
 
 				const stopMatch = pathname.match(
 					/^\/api\/environments\/([^/]+)\/stop$/,
 				);
-				if (stopMatch && req.method === "POST") {
-					return await handleStopEnvironment(stopMatch[1]!);
+				if (stopMatch?.[1] && req.method === "POST") {
+					return await handleStopEnvironment(stopMatch[1]);
 				}
 
 				return Response.json(
@@ -196,10 +194,7 @@ async function handleStartEnvironment(envName: string): Promise<Response> {
 			await addRoute(routeId, pm.hostname, pm.hostPort);
 		}
 
-		return Response.json(
-			{ status: "started" },
-			{ headers: corsHeaders() },
-		);
+		return Response.json({ status: "started" }, { headers: corsHeaders() });
 	} finally {
 		db.close();
 	}
@@ -232,10 +227,7 @@ async function handleStopEnvironment(envName: string): Promise<Response> {
 			await removeRoute(routeId);
 		}
 
-		return Response.json(
-			{ status: "stopped" },
-			{ headers: corsHeaders() },
-		);
+		return Response.json({ status: "stopped" }, { headers: corsHeaders() });
 	} finally {
 		db.close();
 	}

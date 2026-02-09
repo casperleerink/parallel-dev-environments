@@ -1,10 +1,10 @@
-import { registerCommand } from "./index.js";
 import {
 	createDatabase,
-	getEnvironmentByName,
 	getEnvFiles,
+	getEnvironmentByName,
 	upsertEnvFile,
 } from "../db/database.js";
+import { registerCommand } from "./index.js";
 
 registerCommand({
 	name: "env",
@@ -64,9 +64,7 @@ async function envSet(args: string[]): Promise<void> {
 
 	const equalsIndex = keyValue.indexOf("=");
 	if (equalsIndex === -1) {
-		throw new Error(
-			`Invalid format: "${keyValue}". Expected KEY=VALUE.`,
-		);
+		throw new Error(`Invalid format: "${keyValue}". Expected KEY=VALUE.`);
 	}
 
 	const key = keyValue.substring(0, equalsIndex);
@@ -88,8 +86,8 @@ async function envSet(args: string[]): Promise<void> {
 		const lines = content.split("\n");
 		let found = false;
 		for (let i = 0; i < lines.length; i++) {
-			const line = lines[i]!;
-			if (line.startsWith(`${key}=`)) {
+			const line = lines[i];
+			if (line?.startsWith(`${key}=`)) {
 				lines[i] = `${key}=${value}`;
 				found = true;
 				break;

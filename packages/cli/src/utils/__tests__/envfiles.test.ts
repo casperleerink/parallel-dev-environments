@@ -1,8 +1,12 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, rm, mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { discoverEnvFiles, formatRouteId, generateHostname } from "../envfiles.js";
+import { join } from "node:path";
+import {
+	discoverEnvFiles,
+	formatRouteId,
+	generateHostname,
+} from "../envfiles.js";
 
 let tempDir: string;
 
@@ -22,10 +26,10 @@ describe("discoverEnvFiles", () => {
 
 		const files = await discoverEnvFiles(tempDir);
 		expect(files).toHaveLength(2);
-		expect(files[0]!.relativePath).toBe(".env");
-		expect(files[0]!.content).toBe("KEY=value");
-		expect(files[1]!.relativePath).toBe(".env.local");
-		expect(files[1]!.content).toBe("SECRET=abc");
+		expect(files[0]?.relativePath).toBe(".env");
+		expect(files[0]?.content).toBe("KEY=value");
+		expect(files[1]?.relativePath).toBe(".env.local");
+		expect(files[1]?.content).toBe("SECRET=abc");
 	});
 
 	test("finds .env files in subdirectories", async () => {
@@ -50,7 +54,7 @@ describe("discoverEnvFiles", () => {
 
 		const files = await discoverEnvFiles(tempDir);
 		expect(files).toHaveLength(1);
-		expect(files[0]!.relativePath).toBe(".env");
+		expect(files[0]?.relativePath).toBe(".env");
 	});
 
 	test("respects max depth of 2", async () => {
@@ -60,7 +64,7 @@ describe("discoverEnvFiles", () => {
 
 		const files = await discoverEnvFiles(tempDir);
 		expect(files).toHaveLength(1);
-		expect(files[0]!.relativePath).toBe(join("a", "b", ".env"));
+		expect(files[0]?.relativePath).toBe(join("a", "b", ".env"));
 	});
 
 	test("returns empty array for directory with no env files", async () => {

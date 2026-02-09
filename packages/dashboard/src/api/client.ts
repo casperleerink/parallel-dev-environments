@@ -34,9 +34,12 @@ export async function fetchProjects(): Promise<ProjectResponse[]> {
 }
 
 export async function startEnvironment(envName: string): Promise<void> {
-	const res = await fetch(`${API_BASE}/api/environments/${encodeURIComponent(envName)}/start`, {
-		method: "POST",
-	});
+	const res = await fetch(
+		`${API_BASE}/api/environments/${encodeURIComponent(envName)}/start`,
+		{
+			method: "POST",
+		},
+	);
 	if (!res.ok) {
 		const body = await res.json().catch(() => ({ error: res.statusText }));
 		throw new Error((body as { error: string }).error);
@@ -44,9 +47,12 @@ export async function startEnvironment(envName: string): Promise<void> {
 }
 
 export async function stopEnvironment(envName: string): Promise<void> {
-	const res = await fetch(`${API_BASE}/api/environments/${encodeURIComponent(envName)}/stop`, {
-		method: "POST",
-	});
+	const res = await fetch(
+		`${API_BASE}/api/environments/${encodeURIComponent(envName)}/stop`,
+		{
+			method: "POST",
+		},
+	);
 	if (!res.ok) {
 		const body = await res.json().catch(() => ({ error: res.statusText }));
 		throw new Error((body as { error: string }).error);

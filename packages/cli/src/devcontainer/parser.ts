@@ -1,6 +1,6 @@
-import { DEFAULT_CONTAINER_PORT } from "@repo/shared";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { DEFAULT_CONTAINER_PORT } from "@repo/shared";
 
 export interface DevcontainerConfig {
 	image?: string;

@@ -3,8 +3,6 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import type { DevcontainerConfig } from "./parser.js";
 
-const CLAUDE_CODE_FEATURE =
-	"ghcr.io/anthropics/devcontainer-features/claude-code:1";
 const BUN_FEATURE = "ghcr.io/shyim/devcontainers-features/bun:0";
 const BUN_INDICATORS = ["bun.lock", "bun.lockb", "bunfig.toml"];
 
@@ -20,9 +18,7 @@ export function detectBunUsage(worktreePath: string): boolean {
 export function buildAdditionalFeatures(
 	worktreePath: string,
 ): Record<string, Record<string, unknown>> {
-	const features: Record<string, Record<string, unknown>> = {
-		[CLAUDE_CODE_FEATURE]: {},
-	};
+	const features: Record<string, Record<string, unknown>> = {};
 
 	if (detectBunUsage(worktreePath)) {
 		features[BUN_FEATURE] = {};
@@ -35,6 +31,7 @@ function buildPostCreateCommand(
 	existingCommand: DevcontainerConfig["postCreateCommand"],
 ): Record<string, string> {
 	const commands: Record<string, string> = {
+		"devenv-claude-code": "curl -fsSL https://claude.ai/install.sh | sh",
 		"devenv-codex": "npm install -g @openai/codex",
 	};
 

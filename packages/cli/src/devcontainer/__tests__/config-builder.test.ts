@@ -53,11 +53,9 @@ describe("buildAdditionalFeatures", () => {
 		rmSync(tempDir, { recursive: true, force: true });
 	});
 
-	it("always includes claude-code feature", () => {
+	it("returns empty features when no indicators", () => {
 		const features = buildAdditionalFeatures(tempDir);
-		expect(
-			"ghcr.io/anthropics/devcontainer-features/claude-code:1" in features,
-		).toBe(true);
+		expect(Object.keys(features).length).toBe(0);
 	});
 
 	it("includes bun feature when bun.lock present", () => {
@@ -176,6 +174,7 @@ describe("buildMergedConfig", () => {
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
 		expect(config.postCreateCommand).toEqual({
+			"devenv-claude-code": "curl -fsSL https://claude.ai/install.sh | sh",
 			"devenv-codex": "npm install -g @openai/codex",
 			project: "npm install",
 		});
@@ -195,6 +194,7 @@ describe("buildMergedConfig", () => {
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
 		expect(config.postCreateCommand).toEqual({
+			"devenv-claude-code": "curl -fsSL https://claude.ai/install.sh | sh",
 			"devenv-codex": "npm install -g @openai/codex",
 			project: "npm install --frozen-lockfile",
 		});
@@ -217,6 +217,7 @@ describe("buildMergedConfig", () => {
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
 		expect(config.postCreateCommand).toEqual({
+			"devenv-claude-code": "curl -fsSL https://claude.ai/install.sh | sh",
 			"devenv-codex": "npm install -g @openai/codex",
 			setup: "npm install",
 			build: "npm run build",
@@ -235,6 +236,7 @@ describe("buildMergedConfig", () => {
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
 		expect(config.postCreateCommand).toEqual({
+			"devenv-claude-code": "curl -fsSL https://claude.ai/install.sh | sh",
 			"devenv-codex": "npm install -g @openai/codex",
 		});
 

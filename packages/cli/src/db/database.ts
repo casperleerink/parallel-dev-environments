@@ -314,6 +314,16 @@ export function deletePortMappings(db: Database, environmentId: number): void {
 	);
 }
 
+export function deleteEnvFiles(db: Database, environmentId: number): void {
+	db.prepare("DELETE FROM env_files WHERE environment_id = ?").run(
+		environmentId,
+	);
+}
+
+export function deleteEnvironment(db: Database, id: number): void {
+	db.prepare("DELETE FROM environments WHERE id = ?").run(id);
+}
+
 export function getNextAvailableHostPort(db: Database): number {
 	const row = db
 		.prepare("SELECT MAX(host_port) as max_port FROM port_mappings")

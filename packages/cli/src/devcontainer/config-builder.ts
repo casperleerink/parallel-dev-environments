@@ -13,8 +13,7 @@ const BUN_INDICATORS = ["bun.lock", "bun.lockb", "bunfig.toml"];
 const NODE_FEATURE = "ghcr.io/devcontainers/features/node:1";
 const NODE_INDICATORS = ["package.json"];
 
-const TURBO_FEATURE =
-	"ghcr.io/devcontainers-extra/features/turborepo-npm:1";
+const TURBO_FEATURE = "ghcr.io/devcontainers-extra/features/turborepo-npm:1";
 const TURBO_INDICATORS = ["turbo.json"];
 
 export interface MergedConfigResult {

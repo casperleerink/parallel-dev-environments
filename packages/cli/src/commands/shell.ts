@@ -1,3 +1,4 @@
+import { basename } from "node:path";
 import { createDatabase, getEnvironmentByName } from "../db/database.js";
 import { registerCommand } from "./index.js";
 
@@ -29,17 +30,22 @@ registerCommand({
 
 			console.log(`Opening shell in ${envName}...`);
 
-			// Use Bun.spawn with docker exec for proper TTY passthrough
-			// The Docker Engine HTTP API doesn't support bidirectional streaming
-			// well with fetch, so we shell out to docker exec instead
-			const proc = Bun.spawn(
-				["docker", "exec", "-it", environment.containerId, "/bin/sh"],
-				{
-					stdin: "inherit",
-					stdout: "inherit",
-					stderr: "inherit",
-				},
-			);
+			// devcontainer CLI mounts workspace to /workspaces/<folder-name>
+			const workDir = environment.worktreePath
+				? `/workspaces/${basename(environment.worktreePath)}`
+				: undefined;
+
+			const execArgs = ["docker", "exec", "-it"];
+			if (workDir) {
+				execArgs.push("-w", workDir);
+			}
+			execArgs.push(environment.containerId, "/bin/sh");
+
+			const proc = Bun.spawn(execArgs, {
+				stdin: "inherit",
+				stdout: "inherit",
+				stderr: "inherit",
+			});
 
 			await proc.exited;
 		} finally {

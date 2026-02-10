@@ -94,31 +94,25 @@ describe("buildAdditionalFeatures", () => {
 	it("includes bun feature when bun.lock present", () => {
 		writeFileSync(join(tempDir, "bun.lock"), "");
 		const features = buildAdditionalFeatures(tempDir);
-		expect(
-			"ghcr.io/shyim/devcontainers-features/bun:0" in features,
-		).toBe(true);
+		expect("ghcr.io/shyim/devcontainers-features/bun:0" in features).toBe(true);
 	});
 
 	it("does not include bun feature when no bun indicators", () => {
 		const features = buildAdditionalFeatures(tempDir);
-		expect(
-			"ghcr.io/shyim/devcontainers-features/bun:0" in features,
-		).toBe(false);
+		expect("ghcr.io/shyim/devcontainers-features/bun:0" in features).toBe(
+			false,
+		);
 	});
 
 	it("includes node feature when package.json present", () => {
 		writeFileSync(join(tempDir, "package.json"), "{}");
 		const features = buildAdditionalFeatures(tempDir);
-		expect(
-			"ghcr.io/devcontainers/features/node:1" in features,
-		).toBe(true);
+		expect("ghcr.io/devcontainers/features/node:1" in features).toBe(true);
 	});
 
 	it("does not include node feature when no node indicators", () => {
 		const features = buildAdditionalFeatures(tempDir);
-		expect(
-			"ghcr.io/devcontainers/features/node:1" in features,
-		).toBe(false);
+		expect("ghcr.io/devcontainers/features/node:1" in features).toBe(false);
 	});
 });
 
@@ -291,9 +285,7 @@ describe("buildMergedConfig", () => {
 		});
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
-		expect(config.containerEnv.CLAUDE_CONFIG_DIR).toBe(
-			"/devenv-claude-config",
-		);
+		expect(config.containerEnv.CLAUDE_CONFIG_DIR).toBe("/devenv-claude-config");
 
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
 	});
@@ -308,6 +300,7 @@ describe("buildMergedConfig", () => {
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
 		expect(config.mounts).toContain(
+			// biome-ignore lint/suspicious/noTemplateCurlyInString: devcontainer syntax
 			"source=${localEnv:HOME}/.claude,target=/devenv-claude-config,type=bind",
 		);
 
@@ -318,6 +311,7 @@ describe("buildMergedConfig", () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: {
 				mounts: [
+					// biome-ignore lint/suspicious/noTemplateCurlyInString: devcontainer syntax
 					"source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,readonly",
 				],
 			},
@@ -328,9 +322,11 @@ describe("buildMergedConfig", () => {
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
 		expect(config.mounts).toContain(
+			// biome-ignore lint/suspicious/noTemplateCurlyInString: devcontainer syntax
 			"source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,readonly",
 		);
 		expect(config.mounts).toContain(
+			// biome-ignore lint/suspicious/noTemplateCurlyInString: devcontainer syntax
 			"source=${localEnv:HOME}/.claude,target=/devenv-claude-config,type=bind",
 		);
 

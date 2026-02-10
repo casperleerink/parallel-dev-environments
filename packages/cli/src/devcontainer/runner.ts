@@ -43,10 +43,7 @@ export async function devcontainerUp(options: {
 	];
 
 	if (Object.keys(additionalFeatures).length > 0) {
-		args.push(
-			"--additional-features",
-			JSON.stringify(additionalFeatures),
-		);
+		args.push("--additional-features", JSON.stringify(additionalFeatures));
 	}
 
 	if (removeExistingContainer) {

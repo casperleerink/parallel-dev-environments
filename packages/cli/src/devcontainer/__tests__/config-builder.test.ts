@@ -6,6 +6,7 @@ import {
 	buildAdditionalFeatures,
 	buildMergedConfig,
 	detectBunUsage,
+	detectNodeUsage,
 } from "../config-builder.js";
 
 describe("detectBunUsage", () => {
@@ -41,6 +42,29 @@ describe("detectBunUsage", () => {
 	});
 });
 
+describe("detectNodeUsage", () => {
+	let tempDir: string;
+
+	beforeEach(() => {
+		tempDir = join(tmpdir(), `devenv-config-test-${Date.now()}`);
+		mkdirSync(tempDir, { recursive: true });
+	});
+
+	afterEach(() => {
+		rmSync(tempDir, { recursive: true, force: true });
+	});
+
+	it("detects package.json", () => {
+		writeFileSync(join(tempDir, "package.json"), "{}");
+		expect(detectNodeUsage(tempDir)).toBe(true);
+	});
+
+	it("returns false when no node indicators", () => {
+		writeFileSync(join(tempDir, "README.md"), "");
+		expect(detectNodeUsage(tempDir)).toBe(false);
+	});
+});
+
 describe("buildAdditionalFeatures", () => {
 	let tempDir: string;
 
@@ -53,9 +77,18 @@ describe("buildAdditionalFeatures", () => {
 		rmSync(tempDir, { recursive: true, force: true });
 	});
 
-	it("returns empty features when no indicators", () => {
+	it("always includes claude-code feature", () => {
 		const features = buildAdditionalFeatures(tempDir);
-		expect(Object.keys(features).length).toBe(0);
+		expect(
+			"ghcr.io/stu-bell/devcontainer-features/claude-code:0" in features,
+		).toBe(true);
+	});
+
+	it("always includes codex feature", () => {
+		const features = buildAdditionalFeatures(tempDir);
+		expect(
+			"ghcr.io/jsburckhardt/devcontainer-features/codex:1" in features,
+		).toBe(true);
 	});
 
 	it("includes bun feature when bun.lock present", () => {
@@ -70,6 +103,21 @@ describe("buildAdditionalFeatures", () => {
 		const features = buildAdditionalFeatures(tempDir);
 		expect(
 			"ghcr.io/shyim/devcontainers-features/bun:0" in features,
+		).toBe(false);
+	});
+
+	it("includes node feature when package.json present", () => {
+		writeFileSync(join(tempDir, "package.json"), "{}");
+		const features = buildAdditionalFeatures(tempDir);
+		expect(
+			"ghcr.io/devcontainers/features/node:1" in features,
+		).toBe(true);
+	});
+
+	it("does not include node feature when no node indicators", () => {
+		const features = buildAdditionalFeatures(tempDir);
+		expect(
+			"ghcr.io/devcontainers/features/node:1" in features,
 		).toBe(false);
 	});
 });
@@ -162,7 +210,7 @@ describe("buildMergedConfig", () => {
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
 	});
 
-	it("merges postCreateCommand with codex install", async () => {
+	it("merges string postCreateCommand", async () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: {
 				postCreateCommand: "npm install",
@@ -174,8 +222,6 @@ describe("buildMergedConfig", () => {
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
 		expect(config.postCreateCommand).toEqual({
-			"devenv-claude-code": "curl -fsSL https://claude.ai/install.sh | sh",
-			"devenv-codex": "npm install -g @openai/codex",
 			project: "npm install",
 		});
 
@@ -194,8 +240,6 @@ describe("buildMergedConfig", () => {
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
 		expect(config.postCreateCommand).toEqual({
-			"devenv-claude-code": "curl -fsSL https://claude.ai/install.sh | sh",
-			"devenv-codex": "npm install -g @openai/codex",
 			project: "npm install --frozen-lockfile",
 		});
 
@@ -217,8 +261,6 @@ describe("buildMergedConfig", () => {
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
 		expect(config.postCreateCommand).toEqual({
-			"devenv-claude-code": "curl -fsSL https://claude.ai/install.sh | sh",
-			"devenv-codex": "npm install -g @openai/codex",
 			setup: "npm install",
 			build: "npm run build",
 		});
@@ -226,7 +268,7 @@ describe("buildMergedConfig", () => {
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
 	});
 
-	it("adds codex install when no postCreateCommand exists", async () => {
+	it("returns empty postCreateCommand when no existing command", async () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: null,
 			worktreePath: tempDir,
@@ -235,10 +277,7 @@ describe("buildMergedConfig", () => {
 		});
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
-		expect(config.postCreateCommand).toEqual({
-			"devenv-claude-code": "curl -fsSL https://claude.ai/install.sh | sh",
-			"devenv-codex": "npm install -g @openai/codex",
-		});
+		expect(config.postCreateCommand).toEqual({});
 
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
 	});

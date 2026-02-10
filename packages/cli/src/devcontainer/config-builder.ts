@@ -13,6 +13,10 @@ const BUN_INDICATORS = ["bun.lock", "bun.lockb", "bunfig.toml"];
 const NODE_FEATURE = "ghcr.io/devcontainers/features/node:1";
 const NODE_INDICATORS = ["package.json"];
 
+const TURBO_FEATURE =
+	"ghcr.io/devcontainers-extra/features/turborepo-npm:1";
+const TURBO_INDICATORS = ["turbo.json"];
+
 export interface MergedConfigResult {
 	configPath: string;
 	additionalFeatures: Record<string, Record<string, unknown>>;
@@ -24,6 +28,10 @@ export function detectBunUsage(worktreePath: string): boolean {
 
 export function detectNodeUsage(worktreePath: string): boolean {
 	return NODE_INDICATORS.some((file) => existsSync(join(worktreePath, file)));
+}
+
+export function detectTurboUsage(worktreePath: string): boolean {
+	return TURBO_INDICATORS.some((file) => existsSync(join(worktreePath, file)));
 }
 
 export function buildAdditionalFeatures(
@@ -40,6 +48,10 @@ export function buildAdditionalFeatures(
 
 	if (detectNodeUsage(worktreePath)) {
 		features[NODE_FEATURE] = {};
+	}
+
+	if (detectTurboUsage(worktreePath)) {
+		features[TURBO_FEATURE] = {};
 	}
 
 	return features;
@@ -85,7 +97,6 @@ export async function buildMergedConfig(options: {
 		Object.assign(merged, devcontainerConfig);
 		// Remove fields we handle via our own mechanisms
 		delete merged.forwardPorts;
-		delete merged.remoteEnv;
 	}
 
 	// Set default image if no image/dockerFile/dockerComposeFile specified
@@ -93,11 +104,9 @@ export async function buildMergedConfig(options: {
 		merged.image = "node:24";
 	}
 
-	// Merge containerEnv (CLAUDE_CONFIG_DIR points to mounted host config)
-	const existingContainerEnv =
-		(merged.containerEnv as Record<string, string>) ?? {};
-	merged.containerEnv = {
-		...existingContainerEnv,
+	// Keep original containerEnv from project config unchanged (stable for Docker layer caching)
+	// Put all injected env vars into remoteEnv (applied at runtime, not baked into the image)
+	merged.remoteEnv = {
 		...containerEnv,
 		CLAUDE_CONFIG_DIR: "/devenv-claude-config",
 	};

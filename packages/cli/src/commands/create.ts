@@ -63,12 +63,17 @@ function parseArgs(args: string[]): { repo: string; branch: string } {
 	return { repo, branch };
 }
 
+function elapsed(start: number): string {
+	return `${((performance.now() - start) / 1000).toFixed(1)}s`;
+}
+
 registerCommand({
 	name: "create",
 	description: "Create a new development environment",
 	async run(args: string[]) {
 		const { repo, branch } = parseArgs(args);
 		const repoPath = resolve(repo);
+		const totalStart = performance.now();
 
 		// Validate prerequisites
 		await ensureDevcontainerCLI();
@@ -107,7 +112,9 @@ registerCommand({
 			);
 			if (!existsSync(worktreePath)) {
 				console.log(`  Creating worktree for branch: ${branch}`);
+				const wtStart = performance.now();
 				await createWorktree(repoPath, branch, worktreePath);
+				console.log(`  Worktree created (${elapsed(wtStart)})`);
 			}
 
 			// Environment
@@ -219,6 +226,7 @@ registerCommand({
 			});
 
 			console.log("  Starting devcontainer...");
+			const dcStart = performance.now();
 			const { containerId } = await devcontainerUp({
 				worktreePath,
 				configPath,
@@ -227,20 +235,25 @@ registerCommand({
 				additionalFeatures,
 				removeExistingContainer,
 			});
+			console.log(`  Devcontainer started (${elapsed(dcStart)})`);
 
 			updateEnvironmentContainer(db, environment.id, containerId);
 			updateEnvironmentStatus(db, environment.id, "running");
 
 			// Caddy routes
 			console.log("  Configuring reverse proxy...");
+			const caddyStart = performance.now();
 			await ensureCaddyRunning();
 			for (const pm of portMappings) {
 				const routeId = formatRouteId(`${envName}-${pm.containerPort}`);
 				await addRoute(routeId, pm.hostname, pm.hostPort);
 			}
+			console.log(`  Reverse proxy configured (${elapsed(caddyStart)})`);
 
 			// Summary
-			console.log("\nEnvironment created successfully!");
+			console.log(
+				`\nEnvironment created successfully! (${elapsed(totalStart)} total)`,
+			);
 			console.log(`  Name:   ${envName}`);
 			console.log(`  Branch: ${branch}`);
 			console.log(`  Status: running`);

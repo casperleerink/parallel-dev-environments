@@ -16,9 +16,17 @@ async function waitForCaddyReady(maxAttempts = 30): Promise<void> {
 	for (let i = 0; i < maxAttempts; i++) {
 		try {
 			const res = await fetch(`${CADDY_ADMIN_URL}/config/`);
-			if (res.ok) return;
+			if (res.ok) {
+				console.log(`    [debug] Caddy ready after ${i + 1} attempt(s)`);
+				return;
+			}
 		} catch {
 			// Not ready yet
+		}
+		if (i > 0 && i % 5 === 0) {
+			console.log(
+				`    [debug] Waiting for Caddy admin API... (attempt ${i + 1}/${maxAttempts})`,
+			);
 		}
 		await Bun.sleep(200);
 	}
@@ -56,7 +64,9 @@ export async function ensureCaddyRunning(): Promise<void> {
 	}
 
 	// Pull image and create container
+	console.log(`    [debug] Pulling Caddy image: ${CADDY_IMAGE}`);
 	await pullImage(CADDY_IMAGE);
+	console.log("    [debug] Caddy image pulled");
 
 	const config = JSON.stringify({ admin: { listen: "0.0.0.0:2019" } });
 	await createContainer({
@@ -76,6 +86,7 @@ export async function ensureCaddyRunning(): Promise<void> {
 		},
 	});
 
+	console.log("    [debug] Starting Caddy container...");
 	await startContainer(CADDY_CONTAINER_NAME);
 	await waitForCaddyReady();
 }

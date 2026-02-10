@@ -50,15 +50,47 @@ export async function devcontainerUp(options: {
 		args.push("--remove-existing-container");
 	}
 
+	console.log(
+		`    [debug] Running: devcontainer ${args.slice(0, 3).join(" ")} ...`,
+	);
+
 	const proc = Bun.spawn(["devcontainer", ...args], {
 		stdout: "pipe",
 		stderr: "pipe",
 	});
 
-	const [stdout, stderr] = await Promise.all([
+	// Stream stderr in real-time so user can see progress
+	const stderrChunks: string[] = [];
+	const stderrReader = (async () => {
+		const reader = proc.stderr.getReader();
+		const decoder = new TextDecoder();
+		let buffer = "";
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			const text = decoder.decode(value, { stream: true });
+			stderrChunks.push(text);
+			buffer += text;
+			// Print complete lines as they come in
+			const lines = buffer.split("\n");
+			buffer = lines.pop() ?? "";
+			for (const line of lines) {
+				if (line.trim()) {
+					console.log(`    [devcontainer] ${line}`);
+				}
+			}
+		}
+		// Flush remaining buffer
+		if (buffer.trim()) {
+			console.log(`    [devcontainer] ${buffer}`);
+		}
+	})();
+
+	const [stdout] = await Promise.all([
 		new Response(proc.stdout).text(),
-		new Response(proc.stderr).text(),
+		stderrReader,
 	]);
+	const stderr = stderrChunks.join("");
 
 	const exitCode = await proc.exited;
 

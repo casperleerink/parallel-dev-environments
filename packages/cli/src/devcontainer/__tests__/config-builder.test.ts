@@ -169,7 +169,7 @@ describe("buildMergedConfig", () => {
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
 	});
 
-	it("merges containerEnv from config and provided env", async () => {
+	it("puts injected env vars into remoteEnv, preserves project containerEnv", async () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: {
 				containerEnv: { EXISTING: "value" },
@@ -180,8 +180,10 @@ describe("buildMergedConfig", () => {
 		});
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
-		expect(config.containerEnv).toEqual({
-			EXISTING: "value",
+		// Project's containerEnv is preserved unchanged (stable for Docker layer caching)
+		expect(config.containerEnv).toEqual({ EXISTING: "value" });
+		// Injected env vars go to remoteEnv (applied at runtime)
+		expect(config.remoteEnv).toEqual({
 			NEW_VAR: "new_value",
 			CLAUDE_CONFIG_DIR: "/devenv-claude-config",
 		});
@@ -276,7 +278,7 @@ describe("buildMergedConfig", () => {
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
 	});
 
-	it("sets CLAUDE_CONFIG_DIR in containerEnv", async () => {
+	it("sets CLAUDE_CONFIG_DIR in remoteEnv", async () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: null,
 			worktreePath: tempDir,
@@ -285,7 +287,7 @@ describe("buildMergedConfig", () => {
 		});
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
-		expect(config.containerEnv.CLAUDE_CONFIG_DIR).toBe("/devenv-claude-config");
+		expect(config.remoteEnv.CLAUDE_CONFIG_DIR).toBe("/devenv-claude-config");
 
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
 	});
@@ -333,11 +335,10 @@ describe("buildMergedConfig", () => {
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
 	});
 
-	it("removes forwardPorts and remoteEnv from config", async () => {
+	it("removes forwardPorts from config", async () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: {
 				forwardPorts: [3000],
-				remoteEnv: { PATH: "/usr/bin" },
 				image: "node:24",
 			},
 			worktreePath: tempDir,
@@ -347,7 +348,6 @@ describe("buildMergedConfig", () => {
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
 		expect(config.forwardPorts).toBeUndefined();
-		expect(config.remoteEnv).toBeUndefined();
 
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
 	});

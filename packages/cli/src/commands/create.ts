@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { DEVENV_DIR, DEVENV_WORKTREES_DIR } from "@repo/shared";
 import {
 	createDatabase,
@@ -158,7 +158,7 @@ registerCommand({
 				);
 			}
 
-			// Env files
+			// Env files — discover from original repo and copy to worktree
 			const envFiles = await discoverEnvFiles(repoPath);
 			for (const envFile of envFiles) {
 				upsertEnvFile(
@@ -167,9 +167,13 @@ registerCommand({
 					envFile.relativePath,
 					envFile.content,
 				);
+				// Copy env file to worktree so it exists in the container workspace
+				const targetPath = join(worktreePath, envFile.relativePath);
+				mkdirSync(dirname(targetPath), { recursive: true });
+				writeFileSync(targetPath, envFile.content);
 			}
 			if (envFiles.length > 0) {
-				console.log(`  Discovered ${envFiles.length} env file(s)`);
+				console.log(`  Copied ${envFiles.length} env file(s) to worktree`);
 			}
 
 			// Clear stale port mappings from previous failed attempt
@@ -198,23 +202,9 @@ registerCommand({
 				portMappings.push({ containerPort, hostPort, hostname });
 			}
 
-			// Build container env vars as record for config-builder
-			const configEnvVars = resolveEnvVars(devcontainerConfig);
-			const containerEnv: Record<string, string> = { ...configEnvVars };
-			// Add env file contents as env vars
-			for (const envFile of envFiles) {
-				for (const line of envFile.content.split("\n")) {
-					const trimmed = line.trim();
-					if (trimmed && !trimmed.startsWith("#")) {
-						const eqIndex = trimmed.indexOf("=");
-						if (eqIndex > 0) {
-							const key = trimmed.slice(0, eqIndex);
-							const value = trimmed.slice(eqIndex + 1);
-							containerEnv[key] = value;
-						}
-					}
-				}
-			}
+			// Build container env vars from devcontainer config only
+			// (env files are copied as files to the worktree, not flattened into env vars)
+			const containerEnv = resolveEnvVars(devcontainerConfig);
 
 			// Build merged devcontainer config and run devcontainer up
 			console.log("  Building devcontainer configuration...");

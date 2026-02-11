@@ -79,6 +79,7 @@ export async function buildMergedConfig(options: {
 	repoPath: string;
 	containerEnv: Record<string, string>;
 	portBindings: Record<string, string>;
+	claudeOAuthToken?: string;
 }): Promise<MergedConfigResult> {
 	const {
 		devcontainerConfig,
@@ -86,6 +87,7 @@ export async function buildMergedConfig(options: {
 		repoPath,
 		containerEnv,
 		portBindings,
+		claudeOAuthToken,
 	} = options;
 
 	const merged: Record<string, unknown> = {};
@@ -113,6 +115,7 @@ export async function buildMergedConfig(options: {
 	merged.remoteEnv = {
 		...containerEnv,
 		CLAUDE_CONFIG_DIR: "/devenv-claude-config",
+		...(claudeOAuthToken ? { CLAUDE_CODE_OAUTH_TOKEN: claudeOAuthToken } : {}),
 	};
 
 	// Mount host Claude config directory into the container

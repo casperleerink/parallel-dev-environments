@@ -7,6 +7,7 @@ import {
 	getEnvironmentByName,
 	getNextAvailableHostPort,
 	getProjectByName,
+	getSetting,
 	insertEnvironment,
 	insertPortMapping,
 	insertProject,
@@ -209,12 +210,14 @@ registerCommand({
 
 			// Build merged devcontainer config and run devcontainer up
 			console.log("  Building devcontainer configuration...");
+			const claudeOAuthToken = getSetting(db, "claude-token") ?? undefined;
 			const { configPath, additionalFeatures } = await buildMergedConfig({
 				devcontainerConfig,
 				worktreePath,
 				repoPath,
 				containerEnv,
 				portBindings,
+				claudeOAuthToken,
 			});
 
 			console.log("  Starting devcontainer...");

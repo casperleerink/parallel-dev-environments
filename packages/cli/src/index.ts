@@ -13,6 +13,7 @@ import "./commands/open.js";
 import "./commands/branch.js";
 import "./commands/env.js";
 import "./commands/dashboard.js";
+import "./commands/config.js";
 
 function printHelp(): void {
 	console.log("devenv — Docker-based development environments\n");

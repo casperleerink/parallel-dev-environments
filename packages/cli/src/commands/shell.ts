@@ -30,69 +30,27 @@ registerCommand({
 
 			console.log(`Opening shell in ${envName}...`);
 
-			// Resolve the remoteUser from stored devcontainer config, defaulting to "node".
-			// docker exec defaults to root, but we need to run as the non-root user
-			// so that tools like Claude Code --dangerously-skip-permissions work.
-			let remoteUser = "node";
-			if (environment.devcontainerConfig) {
-				const parsed = JSON.parse(environment.devcontainerConfig) as {
-					remoteUser?: string;
-				};
-				if (parsed.remoteUser) {
-					remoteUser = parsed.remoteUser;
-				}
-			}
-
-			// Resolve the remote user's home directory and PATH.
-			// docker exec does not set HOME, which breaks PATH entries using $HOME
-			// (e.g. claude-code installs to $HOME/.local/bin).
-			// Additionally, devcontainer features may bake $HOME/.local/bin into PATH
-			// with an empty HOME during build, resulting in "/.local/bin" instead of
-			// the correct path. We fix this by prepending the resolved home-based path.
-			const homeProc = Bun.spawn(
-				[
-					"docker",
-					"exec",
-					"--user",
-					remoteUser,
-					environment.containerId,
-					"sh",
-					"-c",
-					"echo ~",
-				],
-				{ stdout: "pipe" },
-			);
-			const homeDir = (await new Response(homeProc.stdout).text()).trim();
-
-			const pathProc = Bun.spawn(
-				[
-					"docker",
-					"exec",
-					"--user",
-					remoteUser,
-					environment.containerId,
-					"sh",
-					"-c",
-					'echo "$PATH"',
-				],
-				{ stdout: "pipe" },
-			);
-			const containerPath = (await new Response(pathProc.stdout).text()).trim();
-
+			// Use devcontainer exec instead of docker exec to automatically apply remoteEnv
+			// (including CLAUDE_CONFIG_DIR and CLAUDE_CODE_OAUTH_TOKEN from config-builder.ts).
+			// This ensures all environment variables defined in remoteEnv are available without
+			// manual synchronization between config-builder and this command.
+			//
 			// devcontainer CLI mounts workspace to /workspaces/<folder-name>
 			const workDir = environment.worktreePath
 				? `/workspaces/${basename(environment.worktreePath)}`
-				: undefined;
+				: "/workspaces";
 
-			const execArgs = ["docker", "exec", "-it", "--user", remoteUser];
-			if (homeDir) {
-				execArgs.push("-e", `HOME=${homeDir}`);
-				execArgs.push("-e", `PATH=${homeDir}/.local/bin:${containerPath}`);
-			}
-			if (workDir) {
-				execArgs.push("-w", workDir);
-			}
-			execArgs.push(environment.containerId, "/bin/bash", "-l");
+			// devcontainer exec doesn't yet support -w/--workdir flag (https://github.com/devcontainers/cli/issues/703)
+			// so we use a wrapper command to cd to the workspace and then exec bash.
+			const execArgs = [
+				"devcontainer",
+				"exec",
+				"--container-id",
+				environment.containerId,
+				"sh",
+				"-c",
+				`cd ${workDir} && exec /bin/bash -l`,
+			];
 
 			const proc = Bun.spawn(execArgs, {
 				stdin: "inherit",

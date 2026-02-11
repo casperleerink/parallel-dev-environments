@@ -66,6 +66,11 @@ export function createDatabase(dbPath?: string): Database {
 			hostname TEXT UNIQUE NOT NULL,
 			FOREIGN KEY (environment_id) REFERENCES environments(id)
 		);
+
+		CREATE TABLE IF NOT EXISTS settings (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL
+		);
 	`);
 
 	return db;
@@ -329,4 +334,33 @@ export function getNextAvailableHostPort(db: Database): number {
 		.prepare("SELECT MAX(host_port) as max_port FROM port_mappings")
 		.get() as { max_port: number | null };
 	return row.max_port ? row.max_port + 1 : HOST_PORT_RANGE_START;
+}
+
+// Settings
+
+export function getSetting(db: Database, key: string): string | null {
+	const row = db
+		.prepare("SELECT value FROM settings WHERE key = ?")
+		.get(key) as { value: string } | null;
+	return row ? row.value : null;
+}
+
+export function setSetting(db: Database, key: string, value: string): void {
+	db.prepare(
+		`INSERT INTO settings (key, value) VALUES (?, ?)
+		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+	).run(key, value);
+}
+
+export function deleteSetting(db: Database, key: string): boolean {
+	const result = db.prepare("DELETE FROM settings WHERE key = ?").run(key);
+	return result.changes > 0;
+}
+
+export function getAllSettings(
+	db: Database,
+): Array<{ key: string; value: string }> {
+	return db
+		.prepare("SELECT key, value FROM settings ORDER BY key")
+		.all() as Array<{ key: string; value: string }>;
 }

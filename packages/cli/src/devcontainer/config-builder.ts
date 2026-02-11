@@ -96,6 +96,12 @@ export async function buildMergedConfig(options: {
 		merged.image = "node:24";
 	}
 
+	// Default to non-root user so Claude Code --dangerously-skip-permissions works
+	// (it refuses to run as root). The node:24 base image includes a "node" user.
+	if (!merged.remoteUser) {
+		merged.remoteUser = "node";
+	}
+
 	// Keep original containerEnv from project config unchanged (stable for Docker layer caching)
 	// Put all injected env vars into remoteEnv (applied at runtime, not baked into the image)
 	merged.remoteEnv = {

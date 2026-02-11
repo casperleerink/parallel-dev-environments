@@ -30,6 +30,19 @@ registerCommand({
 
 			console.log(`Opening shell in ${envName}...`);
 
+			// Resolve the remoteUser from stored devcontainer config, defaulting to "node".
+			// docker exec defaults to root, but we need to run as the non-root user
+			// so that tools like Claude Code --dangerously-skip-permissions work.
+			let remoteUser = "node";
+			if (environment.devcontainerConfig) {
+				const parsed = JSON.parse(environment.devcontainerConfig) as {
+					remoteUser?: string;
+				};
+				if (parsed.remoteUser) {
+					remoteUser = parsed.remoteUser;
+				}
+			}
+
 			// Resolve the remote user's home directory and PATH.
 			// docker exec does not set HOME, which breaks PATH entries using $HOME
 			// (e.g. claude-code installs to $HOME/.local/bin).
@@ -37,13 +50,31 @@ registerCommand({
 			// with an empty HOME during build, resulting in "/.local/bin" instead of
 			// the correct path. We fix this by prepending the resolved home-based path.
 			const homeProc = Bun.spawn(
-				["docker", "exec", environment.containerId, "sh", "-c", "echo ~"],
+				[
+					"docker",
+					"exec",
+					"--user",
+					remoteUser,
+					environment.containerId,
+					"sh",
+					"-c",
+					"echo ~",
+				],
 				{ stdout: "pipe" },
 			);
 			const homeDir = (await new Response(homeProc.stdout).text()).trim();
 
 			const pathProc = Bun.spawn(
-				["docker", "exec", environment.containerId, "sh", "-c", 'echo "$PATH"'],
+				[
+					"docker",
+					"exec",
+					"--user",
+					remoteUser,
+					environment.containerId,
+					"sh",
+					"-c",
+					'echo "$PATH"',
+				],
 				{ stdout: "pipe" },
 			);
 			const containerPath = (await new Response(pathProc.stdout).text()).trim();
@@ -53,7 +84,7 @@ registerCommand({
 				? `/workspaces/${basename(environment.worktreePath)}`
 				: undefined;
 
-			const execArgs = ["docker", "exec", "-it"];
+			const execArgs = ["docker", "exec", "-it", "--user", remoteUser];
 			if (homeDir) {
 				execArgs.push("-e", `HOME=${homeDir}`);
 				execArgs.push("-e", `PATH=${homeDir}/.local/bin:${containerPath}`);

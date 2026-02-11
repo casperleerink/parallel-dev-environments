@@ -16,6 +16,7 @@ import {
 } from "../db/database.js";
 import { buildMergedConfig } from "../devcontainer/config-builder.js";
 import {
+	detectPostgresFeature,
 	findDevcontainerConfig,
 	resolveEnvVars,
 	resolveForwardPorts,
@@ -250,6 +251,18 @@ registerCommand({
 			console.log("  URLs:");
 			for (const pm of portMappings) {
 				console.log(`    http://${pm.hostname} → :${pm.containerPort}`);
+			}
+			if (detectPostgresFeature(devcontainerConfig)) {
+				console.log("  PostgreSQL:");
+				console.log(
+					"    postgres://postgres@localhost:5432/postgres (inside container)",
+				);
+				const pgMapping = portMappings.find((pm) => pm.containerPort === 5432);
+				if (pgMapping) {
+					console.log(
+						`    postgres://postgres@localhost:${pgMapping.hostPort}/postgres (from host)`,
+					);
+				}
 			}
 		} finally {
 			db.close();

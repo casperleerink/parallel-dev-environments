@@ -62,6 +62,17 @@ export function resolveEnvVars(
 	return env;
 }
 
+const POSTGRES_FEATURE_PATTERN = /\/features\/postgres(ql)?[:/]/;
+
+export function detectPostgresFeature(
+	config: DevcontainerConfig | null,
+): boolean {
+	if (!config?.features) return false;
+	return Object.keys(config.features).some((key) =>
+		POSTGRES_FEATURE_PATTERN.test(key),
+	);
+}
+
 export function resolvePostCreateCommand(
 	config: DevcontainerConfig | null,
 ): string | null {

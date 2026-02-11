@@ -77,18 +77,9 @@ describe("buildAdditionalFeatures", () => {
 		rmSync(tempDir, { recursive: true, force: true });
 	});
 
-	it("always includes claude-code feature", () => {
+	it("returns empty features when no indicators present", () => {
 		const features = buildAdditionalFeatures(tempDir);
-		expect(
-			"ghcr.io/stu-bell/devcontainer-features/claude-code:0" in features,
-		).toBe(true);
-	});
-
-	it("always includes codex feature", () => {
-		const features = buildAdditionalFeatures(tempDir);
-		expect(
-			"ghcr.io/jsburckhardt/devcontainer-features/codex:1" in features,
-		).toBe(true);
+		expect(Object.keys(features)).toHaveLength(0);
 	});
 
 	it("includes bun feature when bun.lock present", () => {
@@ -219,6 +210,8 @@ describe("buildMergedConfig", () => {
 		const config = JSON.parse(await Bun.file(result.configPath).text());
 		expect(config.postCreateCommand).toEqual({
 			project: "npm install",
+			"install-ai-tools":
+				"npm install -g @anthropic-ai/claude-code @openai/codex",
 		});
 
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
@@ -237,6 +230,8 @@ describe("buildMergedConfig", () => {
 		const config = JSON.parse(await Bun.file(result.configPath).text());
 		expect(config.postCreateCommand).toEqual({
 			project: "npm install --frozen-lockfile",
+			"install-ai-tools":
+				"npm install -g @anthropic-ai/claude-code @openai/codex",
 		});
 
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
@@ -259,12 +254,14 @@ describe("buildMergedConfig", () => {
 		expect(config.postCreateCommand).toEqual({
 			setup: "npm install",
 			build: "npm run build",
+			"install-ai-tools":
+				"npm install -g @anthropic-ai/claude-code @openai/codex",
 		});
 
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
 	});
 
-	it("returns empty postCreateCommand when no existing command", async () => {
+	it("includes ai tools in postCreateCommand when no existing command", async () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: null,
 			worktreePath: tempDir,
@@ -273,7 +270,10 @@ describe("buildMergedConfig", () => {
 		});
 
 		const config = JSON.parse(await Bun.file(result.configPath).text());
-		expect(config.postCreateCommand).toEqual({});
+		expect(config.postCreateCommand).toEqual({
+			"install-ai-tools":
+				"npm install -g @anthropic-ai/claude-code @openai/codex",
+		});
 
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
 	});

@@ -3,10 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { DevcontainerConfig } from "./parser.js";
 
-const CLAUDE_CODE_FEATURE =
-	"ghcr.io/stu-bell/devcontainer-features/claude-code:0";
-const CODEX_FEATURE = "ghcr.io/jsburckhardt/devcontainer-features/codex:1";
-
 const BUN_FEATURE = "ghcr.io/shyim/devcontainers-features/bun:0";
 const BUN_INDICATORS = ["bun.lock", "bun.lockb", "bunfig.toml"];
 
@@ -36,10 +32,7 @@ export function detectTurboUsage(worktreePath: string): boolean {
 export function buildAdditionalFeatures(
 	worktreePath: string,
 ): Record<string, Record<string, unknown>> {
-	const features: Record<string, Record<string, unknown>> = {
-		[CLAUDE_CODE_FEATURE]: {},
-		[CODEX_FEATURE]: {},
-	};
+	const features: Record<string, Record<string, unknown>> = {};
 
 	if (detectBunUsage(worktreePath)) {
 		features[BUN_FEATURE] = {};
@@ -122,9 +115,13 @@ export async function buildMergedConfig(options: {
 	merged.appPort = buildAppPort(portBindings);
 
 	// Merge postCreateCommand
-	merged.postCreateCommand = buildPostCreateCommand(
+	const postCreateCommand = buildPostCreateCommand(
 		devcontainerConfig?.postCreateCommand,
 	);
+	// Install AI coding tools at runtime instead of as build features to avoid OOM during Docker build
+	postCreateCommand["install-ai-tools"] =
+		"npm install -g @anthropic-ai/claude-code @openai/codex";
+	merged.postCreateCommand = postCreateCommand;
 
 	// Build additional features
 	const additionalFeatures = buildAdditionalFeatures(worktreePath);

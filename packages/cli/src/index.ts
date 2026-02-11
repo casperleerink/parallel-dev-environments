@@ -9,6 +9,7 @@ import "./commands/stop.js";
 import "./commands/remove.js";
 import "./commands/list.js";
 import "./commands/shell.js";
+import "./commands/open.js";
 import "./commands/branch.js";
 import "./commands/env.js";
 import "./commands/dashboard.js";

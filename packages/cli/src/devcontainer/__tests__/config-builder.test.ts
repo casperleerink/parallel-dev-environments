@@ -9,6 +9,8 @@ import {
 	detectNodeUsage,
 } from "../config-builder.js";
 
+const FAKE_REPO_PATH = "/tmp/fake-repo";
+
 describe("detectBunUsage", () => {
 	let tempDir: string;
 
@@ -123,6 +125,7 @@ describe("buildMergedConfig", () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: null,
 			worktreePath: tempDir,
+			repoPath: FAKE_REPO_PATH,
 			containerEnv: {},
 			portBindings: {},
 		});
@@ -136,6 +139,7 @@ describe("buildMergedConfig", () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: null,
 			worktreePath: tempDir,
+			repoPath: FAKE_REPO_PATH,
 			containerEnv: {},
 			portBindings: {},
 		});
@@ -150,6 +154,7 @@ describe("buildMergedConfig", () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: { image: "python:3.12" },
 			worktreePath: tempDir,
+			repoPath: FAKE_REPO_PATH,
 			containerEnv: {},
 			portBindings: {},
 		});
@@ -166,6 +171,7 @@ describe("buildMergedConfig", () => {
 				containerEnv: { EXISTING: "value" },
 			},
 			worktreePath: tempDir,
+			repoPath: FAKE_REPO_PATH,
 			containerEnv: { NEW_VAR: "new_value" },
 			portBindings: {},
 		});
@@ -186,6 +192,7 @@ describe("buildMergedConfig", () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: null,
 			worktreePath: tempDir,
+			repoPath: FAKE_REPO_PATH,
 			containerEnv: {},
 			portBindings: { "3000": "49200", "5432": "49201" },
 		});
@@ -203,6 +210,7 @@ describe("buildMergedConfig", () => {
 				postCreateCommand: "npm install",
 			},
 			worktreePath: tempDir,
+			repoPath: FAKE_REPO_PATH,
 			containerEnv: {},
 			portBindings: {},
 		});
@@ -212,6 +220,8 @@ describe("buildMergedConfig", () => {
 			project: "npm install",
 			"install-ai-tools":
 				"npm install -g @anthropic-ai/claude-code @openai/codex",
+			"fix-git-mount-permissions":
+				"sudo chown $(whoami) /tmp/fake-repo 2>/dev/null || true",
 		});
 
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
@@ -223,6 +233,7 @@ describe("buildMergedConfig", () => {
 				postCreateCommand: ["npm", "install", "--frozen-lockfile"],
 			},
 			worktreePath: tempDir,
+			repoPath: FAKE_REPO_PATH,
 			containerEnv: {},
 			portBindings: {},
 		});
@@ -232,6 +243,8 @@ describe("buildMergedConfig", () => {
 			project: "npm install --frozen-lockfile",
 			"install-ai-tools":
 				"npm install -g @anthropic-ai/claude-code @openai/codex",
+			"fix-git-mount-permissions":
+				"sudo chown $(whoami) /tmp/fake-repo 2>/dev/null || true",
 		});
 
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
@@ -246,6 +259,7 @@ describe("buildMergedConfig", () => {
 				} as unknown as Record<string, string>,
 			},
 			worktreePath: tempDir,
+			repoPath: FAKE_REPO_PATH,
 			containerEnv: {},
 			portBindings: {},
 		});
@@ -256,6 +270,8 @@ describe("buildMergedConfig", () => {
 			build: "npm run build",
 			"install-ai-tools":
 				"npm install -g @anthropic-ai/claude-code @openai/codex",
+			"fix-git-mount-permissions":
+				"sudo chown $(whoami) /tmp/fake-repo 2>/dev/null || true",
 		});
 
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
@@ -265,6 +281,7 @@ describe("buildMergedConfig", () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: null,
 			worktreePath: tempDir,
+			repoPath: FAKE_REPO_PATH,
 			containerEnv: {},
 			portBindings: {},
 		});
@@ -273,6 +290,8 @@ describe("buildMergedConfig", () => {
 		expect(config.postCreateCommand).toEqual({
 			"install-ai-tools":
 				"npm install -g @anthropic-ai/claude-code @openai/codex",
+			"fix-git-mount-permissions":
+				"sudo chown $(whoami) /tmp/fake-repo 2>/dev/null || true",
 		});
 
 		rmSync(dirname(result.configPath), { recursive: true, force: true });
@@ -282,6 +301,7 @@ describe("buildMergedConfig", () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: null,
 			worktreePath: tempDir,
+			repoPath: FAKE_REPO_PATH,
 			containerEnv: {},
 			portBindings: {},
 		});
@@ -296,6 +316,7 @@ describe("buildMergedConfig", () => {
 		const result = await buildMergedConfig({
 			devcontainerConfig: null,
 			worktreePath: tempDir,
+			repoPath: FAKE_REPO_PATH,
 			containerEnv: {},
 			portBindings: {},
 		});
@@ -318,6 +339,7 @@ describe("buildMergedConfig", () => {
 				],
 			},
 			worktreePath: tempDir,
+			repoPath: FAKE_REPO_PATH,
 			containerEnv: {},
 			portBindings: {},
 		});
@@ -342,6 +364,7 @@ describe("buildMergedConfig", () => {
 				image: "node:24",
 			},
 			worktreePath: tempDir,
+			repoPath: FAKE_REPO_PATH,
 			containerEnv: {},
 			portBindings: {},
 		});

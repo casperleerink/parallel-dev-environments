@@ -76,11 +76,17 @@ function buildAppPort(portBindings: Record<string, string>): string[] {
 export async function buildMergedConfig(options: {
 	devcontainerConfig: DevcontainerConfig | null;
 	worktreePath: string;
+	repoPath: string;
 	containerEnv: Record<string, string>;
 	portBindings: Record<string, string>;
 }): Promise<MergedConfigResult> {
-	const { devcontainerConfig, worktreePath, containerEnv, portBindings } =
-		options;
+	const {
+		devcontainerConfig,
+		worktreePath,
+		repoPath,
+		containerEnv,
+		portBindings,
+	} = options;
 
 	const merged: Record<string, unknown> = {};
 
@@ -111,10 +117,14 @@ export async function buildMergedConfig(options: {
 
 	// Mount host Claude config directory into the container
 	const existingMounts = (merged.mounts as string[]) ?? [];
+	const repoGitDir = join(repoPath, ".git");
 	merged.mounts = [
 		...existingMounts,
 		// biome-ignore lint/suspicious/noTemplateCurlyInString: apparently this is valid
 		"source=${localEnv:HOME}/.claude,target=/devenv-claude-config,type=bind",
+		// Mount the parent repo's .git directory at the same absolute path so
+		// git worktree references resolve correctly inside the container
+		`source=${repoGitDir},target=${repoGitDir},type=bind`,
 	];
 
 	// Set appPort from our allocated port bindings
@@ -127,6 +137,11 @@ export async function buildMergedConfig(options: {
 	// Install AI coding tools at runtime instead of as build features to avoid OOM during Docker build
 	postCreateCommand["install-ai-tools"] =
 		"npm install -g @anthropic-ai/claude-code @openai/codex";
+	// The .git bind mount's parent directory is auto-created by Docker and owned by root.
+	// Tools like turbo that follow git worktree references to resolve the repo root
+	// will try to write to this directory and fail with permission denied.
+	postCreateCommand["fix-git-mount-permissions"] =
+		`sudo chown $(whoami) ${repoPath} 2>/dev/null || true`;
 	merged.postCreateCommand = postCreateCommand;
 
 	// Build additional features

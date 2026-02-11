@@ -212,6 +212,7 @@ registerCommand({
 			const { configPath, additionalFeatures } = await buildMergedConfig({
 				devcontainerConfig,
 				worktreePath,
+				repoPath,
 				containerEnv,
 				portBindings,
 			});
